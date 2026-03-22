@@ -2,7 +2,7 @@
 // Configuration
 // ============================================
 
-const API_BASE = 'http://darkgoldenrod-frog-258465.hostingersite.com';
+const API_BASE = 'https://darkgoldenrod-frog-258465.hostingersite.com';
 const SSE_TIMEOUT = 45000; // 45 secondes avant reconnexion
 
 // Helper pour décoder JWT

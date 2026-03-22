@@ -1,5 +1,5 @@
 const App = {
-    apiBaseUrl: "http://darkgoldenrod-frog-258465.hostingersite.com",
+    apiBaseUrl: "https://darkgoldenrod-frog-258465.hostingersite.com",
     userRouteBases: ["/user"],
     goldSyncIntervalMs: 5 * 60 * 1000,
     state: {

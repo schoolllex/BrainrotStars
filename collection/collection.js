@@ -3,7 +3,7 @@ const filterRarity = document.getElementById("filter-rarity");
 const filterOwned = document.getElementById("filter-owned");
 const sortBy = document.getElementById("sort-by");
 
-const API_BASE_URL = "http://darkgoldenrod-frog-258465.hostingersite.com";
+const API_BASE_URL = "https://darkgoldenrod-frog-258465.hostingersite.com";
 const USER_ROUTE_BASES = ["/user"];
 const TOKEN_STORAGE_KEYS = ["brainrot_token", "token", "auth_token", "jwt_token", "jwt"];
 

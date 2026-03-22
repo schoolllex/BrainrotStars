@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://darkgoldenrod-frog-258465.hostingersite.com";
+const API_BASE_URL = "https://darkgoldenrod-frog-258465.hostingersite.com";
 const USER_ROUTE_BASE = "/user";
 
 const ui = {
