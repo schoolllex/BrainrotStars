@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "http://darkgoldenrod-frog-258465.hostingersite.com";
 const SHOP_ROUTE_BASE = "/shop";
 const USER_ROUTE_BASES = ["/user"];
 const SHOP_BULK_100_KEY = "brainrot_shop_bulk_100_last_used";

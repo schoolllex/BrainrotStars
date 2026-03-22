@@ -95,7 +95,7 @@ function renderCategories(data) {
 async function loadAchievements() {
     GlobalLoader.show();
     try {
-        const response = await fetch("http://localhost:3000/api/achievements");
+        const response = await fetch("http://darkgoldenrod-frog-258465.hostingersite.com/api/achievements");
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         renderCategories(data);

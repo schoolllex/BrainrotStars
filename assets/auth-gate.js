@@ -1,5 +1,5 @@
 (() => {
-    const API_BASE_URL = "http://localhost:3000";
+    const API_BASE_URL = "http://darkgoldenrod-frog-258465.hostingersite.com";
     const USER_ROUTE_BASE = "/user";
     const PRIMARY_TOKEN_KEY = "brainrot_token";
     const TOKEN_STORAGE_KEYS = ["brainrot_token", "token", "auth_token", "jwt_token", "jwt"];

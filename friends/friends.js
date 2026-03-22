@@ -2,7 +2,7 @@ const currentPseudoDisplay = document.getElementById("current-pseudo");
 const updatePseudoForm = document.getElementById("update-pseudo-form");
 const newPseudoInput = document.getElementById("new-pseudo-input");
 const profileFeedback = document.getElementById("profile-feedback");
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "http://darkgoldenrod-frog-258465.hostingersite.com";
 
 let pollingInterval = null;
 
