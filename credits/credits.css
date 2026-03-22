@@ -1,0 +1,51 @@
+.credits-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.credits-card {
+    background: var(--card-grad);
+    border: 1px solid var(--card-border-strong);
+    border-radius: 20px;
+    box-shadow: var(--card-shadow);
+    padding: 1.2rem;
+}
+
+.credits-card h1 {
+    font-size: 1.7rem;
+    font-weight: 900;
+    margin-bottom: 0.9rem;
+}
+
+.credits-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.credit-row {
+    border: 1px solid var(--card-border-strong);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.85rem 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.credit-row h2 {
+    font-size: 1.02rem;
+    font-weight: 850;
+}
+
+.credit-row a {
+    color: #f97316;
+    font-weight: 700;
+    text-decoration: none;
+    word-break: break-all;
+}
+
+.credit-row a:hover {
+    text-decoration: underline;
+}

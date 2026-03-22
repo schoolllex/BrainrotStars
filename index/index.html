@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainrotStars</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+</head>
+<body>
+
+    <div class="background-glow">
+        <div class="glow-1"></div>
+        <div class="glow-2"></div>
+    </div>
+
+    <div class="container">
+        <header class="navbar">
+            <div class="logo">
+                <img src="../assets/BrainrotStar_logo_fc.png" alt="Brainrot Star" class="logo-image">
+            </div>
+            <button class="nav-toggle" type="button" aria-label="Ouvrir le menu" aria-expanded="false">
+                <i data-lucide="menu"></i>
+            </button>
+
+            <div class="nav-buttons">
+                <a href="../index/index.html" class="btn-nav nav-link">
+                    <i data-lucide="home"></i>
+                    <span>Accueil</span>
+                </a>
+                <a href="../ranking/ranking.html" class="btn-nav ranking nav-link">
+                    <i data-lucide="trophy"></i>
+                    <span>Classement</span>
+                </a>
+                <a href="../friends/friends.html" class="btn-nav friends nav-link has-badge">
+                    <i data-lucide="users"></i>
+                    <span>Amis</span>
+                    <span class="nav-badge hidden"></span>
+                </a>
+                <a href="../rebirth/rebirth.html" class="btn-nav rebirth nav-link">
+                    <i data-lucide="refresh-ccw"></i>
+                    <span>Rebirth</span>
+                </a>
+                <a href="../credits/credits.html" class="btn-nav nav-link">
+                    <i data-lucide="scroll-text"></i>
+                    <span>Crédits</span>
+                </a>
+            </div>
+        </header>
+
+        <main class="content">
+            <div class="action-grid">
+                <a href="../game/game.html" class="btn-play nav-link" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <i data-lucide="swords"></i>
+                    Lancer une partie contre un ami
+                    <div class="shine"></div>
+                </a>
+
+                <a href="../shop/shop.html" class="btn-card orange nav-link">
+                    <i data-lucide="store"></i>
+                    <span>Boutique</span>
+                </a>
+
+                <a href="../collection/collection.html" class="btn-card purple" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <i data-lucide="library"></i> Collection
+                </a>
+
+                <a href="../battlepass/battlepass.html" class="btn-card sky wide nav-link has-badge">
+                    <span class="btn-emoji">🎟️</span>
+                    <span>Passe de combat</span>
+                    <span class="nav-badge hidden" id="bp-notif-badge"></span>
+                </a>
+
+                <a href="../achievements/achievements.html" id="btn-achievements" class="btn-card yellow wide nav-link">
+                    <i data-lucide="medal"></i>
+                    <span>Achievements</span>
+                </a>
+            </div>
+
+            <section class="economy-grid">
+                <div class="economy-card">
+                    <div class="stat-info">
+                        <div class="icon-wrapper green"><i data-lucide="wallet"></i></div>
+                        <span>Argent total</span>
+                    </div>
+                    <span class="stat-number emerald" id="val-money">5,78M</span>
+                </div>
+
+                <div class="economy-card">
+                    <div class="stat-info">
+                        <div class="icon-wrapper yellow"><i data-lucide="coins"></i></div>
+                        <span>Pièces / sec</span>
+                    </div>
+                    <span class="stat-number gold" id="val-cps">+420 /s</span>
+                </div>
+            </section>
+
+            <section class="stats-container">
+                <p class="stats-title">Statistiques Globales</p>
+                
+                <div class="stat-row">
+                    <div class="stat-info">
+                        <div class="icon-wrapper red"><i data-lucide="brain"></i></div>
+                        <span>Brainrot Acquis</span>
+                    </div>
+                    <span class="stat-number" id="val-brainrots">14 420/69 000</span>
+                </div>
+
+                <div class="stat-row">
+                    <div class="stat-info">
+                        <div class="icon-wrapper purple"><i data-lucide="trophy"></i></div>
+                        <span>Achievements</span>
+                    </div>
+                    <span class="stat-number" id="val-achievements">Non disponible</span>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="global-loader" class="global-loader hidden" aria-hidden="true">
+        <div class="global-loader-spinner"></div>
+    </div>
+
+    <script src="../assets/mobile-nav.js"></script>
+    <script src="../assets/loading.js"></script>
+    <script src="../assets/auth-gate.js"></script>
+    <script src="../assets/notif.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
