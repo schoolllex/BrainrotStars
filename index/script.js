@@ -159,7 +159,7 @@ const App = {
     },
 
     bindEvents() {
-        const playFriendBtn = document.getElementById('btn-play-friend');
+        const playFriendBtn = document.querySelector('.btn-play');
         if (playFriendBtn) {
             playFriendBtn.addEventListener('click', (e) => {
                 e.preventDefault();

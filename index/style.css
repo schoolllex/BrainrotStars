@@ -205,9 +205,9 @@ body {
     gap: 0.5rem;
 
     padding: 1.25rem;
-    background: var(--primary-grad);
-    border: none;
-    border-bottom: 4px solid #991b1b;
+    background: var(--primary-grad) !important;
+    border: none !important;
+    border-bottom: 4px solid #991b1b !important;
     border-radius: 24px;
     color: white;
     font-size: 1.5rem;
