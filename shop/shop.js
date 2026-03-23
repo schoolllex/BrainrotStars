@@ -745,12 +745,15 @@ async function purchaseOpenNow() {
     await syncEconomyFromServer({ forceGoldSync: true });
 }
 
+
 function openInventoryOpenModal(item, ownedQty, cardElement) {
+    const maxQty = Math.min(ownedQty, 150);
+
     inventoryOpenState = { item, ownedQty, cardElement };
     ui.openInventoryItemName.textContent = `${item.emoji || "📦"} ${item.nom}`;
     ui.openInventoryQty.value = "1";
-    ui.openInventoryQty.max = `${ownedQty}`;
-    ui.openInventoryMax.textContent = `Tu possèdes ${formatCompactPrice(ownedQty)} exemplaire(s).`;
+    ui.openInventoryQty.max = `${maxQty}`;
+    ui.openInventoryMax.textContent = `Tu possèdes ${formatCompactPrice(ownedQty)} exemplaire(s). (max 150 utilisables)`;
     ui.openInventoryModal.classList.remove("hidden");
     document.body.classList.add("no-scroll");
     lucide.createIcons();
