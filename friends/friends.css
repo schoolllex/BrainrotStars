@@ -249,6 +249,44 @@ button {
     margin-top: 0.2rem;
 }
 
+.friend-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.delete-friend-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(239, 68, 68, 0.6);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.15));
+    color: #fca5a5;
+    border-radius: 10px;
+    padding: 0.6rem;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    transition: transform 0.2s ease, filter 0.2s ease, background 0.2s ease;
+    flex-shrink: 0;
+}
+
+.delete-friend-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.25));
+}
+
+.delete-friend-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.delete-friend-btn i {
+    width: 18px;
+    height: 18px;
+}
+
 @media (max-width: 900px) {
     .friends-grid {
         grid-template-columns: 1fr;
@@ -270,6 +308,19 @@ button {
     .friend-row {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .friend-actions {
+        width: 100%;
+        flex-direction: row;
+    }
+
+    .friend-actions button {
+        flex: 1;
+    }
+
+    .delete-friend-btn {
+        width: 100% !important;
     }
 
     .request-row {

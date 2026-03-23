@@ -245,6 +245,38 @@ function renderFriendRequests(requests) {
     });
 }
 
+async function deleteFriend(friendId) {
+    const token = await getAuthToken();
+    if (!token) {
+        showInviteFeedback("Erreur d'authentification", false);
+        return false;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/friend/${encodeURIComponent(friendId)}`, {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData?.message || `Delete failed (${response.status})`);
+        }
+
+        const payload = await response.json();
+        if (!payload?.success) {
+            throw new Error(payload?.message || "Delete payload invalid");
+        }
+
+        return true;
+    } catch (error) {
+        console.error("Error deleting friend:", error);
+        return false;
+    }
+}
+
 function renderFriendsList(friends) {
     const friendsList = document.querySelector(".friends-list");
     if (!friendsList) return;
@@ -258,6 +290,7 @@ function renderFriendsList(friends) {
 
     friends.forEach(friend => {
         const pseudo = friend.user?.pseudo || "Utilisateur inconnu";
+        const friendId = friend.user?.id || friend.id;
 
         const friendRow = document.createElement("article");
         friendRow.className = "friend-row";
@@ -266,11 +299,49 @@ function renderFriendsList(friends) {
             <div>
                 <strong>${pseudo}</strong>
             </div>
-            <button type="button" class="disabled-action">Défier</button>
+            <div class="friend-actions">
+                <button type="button" class="disabled-action challenge-btn">Défier</button>
+                <button type="button" class="delete-friend-btn" title="Supprimer cet ami" data-friend-id="${friendId}">
+                    <i data-lucide="trash-2"></i>
+                </button>
+            </div>
         `;
 
         friendsList.appendChild(friendRow);
+
+        const deleteBtn = friendRow.querySelector(".delete-friend-btn");
+        deleteBtn.addEventListener("click", async () => {
+            if (!confirm(`Êtes-vous sûr de vouloir supprimer ${pseudo} de vos amis ?`)) {
+                return;
+            }
+
+            deleteBtn.disabled = true;
+            deleteBtn.style.opacity = "0.5";
+
+            const success = await deleteFriend(friendId);
+            if (success) {
+                friendRow.style.transition = "opacity 0.3s ease";
+                friendRow.style.opacity = "0";
+                setTimeout(() => {
+                    friendRow.remove();
+                    const remainingFriends = document.querySelectorAll(".friend-row");
+                    if (remainingFriends.length === 0) {
+                        friendsList.innerHTML = `<p style="text-align: center; color: #a3a3a3; padding: 1rem;">Aucun ami pour le moment</p>`;
+                    }
+                }, 300);
+                showInviteFeedback(`${pseudo} a été supprimé de vos amis`, true);
+            } else {
+                deleteBtn.disabled = false;
+                deleteBtn.style.opacity = "1";
+                showInviteFeedback("Erreur lors de la suppression de l'ami", false);
+            }
+        });
     });
+
+    // Initialiser les icônes lucide pour les nouveaux boutons
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
 }
 
 function updateFriendsCounter(count) {
@@ -350,6 +421,7 @@ function setupAddFriendForm() {
         inviteButton.textContent = "Envoi...";
 
         const result = await sendFriendRequest(pseudo);
+        inviteButton.textContent = "Envoyé !";
 
         if (result.success) {
             inviteInput.value = "";

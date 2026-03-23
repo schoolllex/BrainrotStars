@@ -31,7 +31,7 @@ const App = {
         this.loadStatsFlow();
         setInterval(() => {
             this.refreshSimulatedMoney();
-        }, 1000);
+        }, 100);
         setInterval(() => {
             this.syncEconomyFromServer({ forceGoldSync: true });
         }, this.goldSyncIntervalMs);
@@ -159,19 +159,74 @@ const App = {
     },
 
     bindEvents() {
-    if (this.ui.mainBtn) {
-        this.ui.mainBtn.addEventListener('click', () => {
-            alert("Matchmaking en cours...");
-        });
-    }
+        const playFriendBtn = document.getElementById('btn-play-friend');
+        if (playFriendBtn) {
+            playFriendBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                alert("Cette fonctionnalité n'est pas encore prête. Attendez la prochaine mise à jour !");
+            });
+        }
 
-    if (this.ui.achievementsBtn) {
-        this.ui.achievementsBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            alert("Non disponible pour le moment");
-        });
+        if (this.ui.mainBtn) {
+            this.ui.mainBtn.addEventListener('click', () => {
+                alert("Matchmaking en cours...");
+            });
+        }
+
+        if (this.ui.achievementsBtn) {
+            this.ui.achievementsBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                alert("Non disponible pour le moment");
+            });
+        }
+
+        const tokenBtn = document.getElementById('btn-token');
+        const tokenOverlay = document.getElementById('token-modal-overlay');
+        const tokenValue = document.getElementById('token-modal-value');
+        const tokenCopy = document.getElementById('token-modal-copy');
+        const tokenClose = document.getElementById('token-modal-close');
+        const tokenFeedback = document.getElementById('token-modal-feedback');
+
+        if (tokenBtn && tokenOverlay) {
+            tokenBtn.addEventListener('click', () => {
+                const token = window.BrainrotAuth.getToken() || 'Non disponible';
+                tokenValue.textContent = token;
+                tokenFeedback.textContent = '';
+                tokenOverlay.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            });
+
+            tokenClose.addEventListener('click', () => {
+                tokenOverlay.classList.add('hidden');
+                document.body.style.overflow = '';
+            });
+
+            tokenOverlay.addEventListener('click', (e) => {
+                if (e.target === tokenOverlay) {
+                    tokenOverlay.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            tokenCopy.addEventListener('click', async () => {
+                const token = tokenValue.textContent;
+                try {
+                    await navigator.clipboard.writeText(token);
+                    tokenFeedback.textContent = '✅ Token copié !';
+                    tokenFeedback.style.color = '#86efac';
+                } catch {
+                    tokenFeedback.textContent = 'Impossible de copier automatiquement.';
+                    tokenFeedback.style.color = '#fca5a5';
+                }
+            });
+        }
     }
-  }
 };
 
-document.addEventListener('DOMContentLoaded', () => App.init());
+document.addEventListener('DOMContentLoaded', () => {
+    App.init();
+    // Afficher le modal de remerciement aux bêta testeurs
+    if (window.BetaTesterModal) {
+        window.BetaTesterModal.show();
+    }
+});

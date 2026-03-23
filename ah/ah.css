@@ -1,0 +1,79 @@
+body {
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: white;
+}
+
+.rebirth-content {
+    padding-bottom: 1.2rem;
+}
+
+.rebirth-card {
+    width: 100%;
+    background: var(--card-grad);
+    border: 1px solid var(--card-border-strong);
+    border-radius: 24px;
+    box-shadow: var(--card-shadow);
+    padding: 1.6rem 1.3rem;
+    text-align: center;
+}
+
+.rebirth-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+}
+
+.rebirth-icon {
+    display: inline-flex;
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(168, 85, 247, 0.72);
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.24), rgba(126, 34, 206, 0.2));
+}
+
+.rebirth-card h1 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    line-height: 1.25;
+}
+
+.rebirth-subtitle {
+    margin-top: 0.7rem;
+    color: var(--text-muted);
+    max-width: 880px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.rebirth-cta {
+    width: min(620px, 100%);
+    margin-top: 1rem;
+    border: 1px solid rgba(168, 85, 247, 0.72);
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.28), rgba(126, 34, 206, 0.22));
+    color: #f3e8ff;
+    border-radius: 14px;
+    padding: 0.8rem 1.1rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgba(168, 85, 247, 0.2);
+}
+
+@media (max-width: 900px) {
+    .rebirth-card {
+        padding: 1.25rem 1rem;
+    }
+
+    .rebirth-card h1 {
+        font-size: 1.25rem;
+    }
+}

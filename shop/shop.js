@@ -64,6 +64,8 @@ let animationState = {
     skipping: false
 };
 
+let purchaseBlockedUntil = 0;
+
 const economyState = {
     syncedGold: 0,
     coinPerSec: 0,
@@ -75,10 +77,18 @@ let userInventory = {};
 
 const RARITY_COLORS = window.BRAINROT_RARITY_COLORS || {
     commun: "#a3a3a3",
+    "peu-commun": "#22c55e",
+    rare: "#3b82f6",
+    "tres-rare": "#8b5cf6",
     ancestral: "#3b82f6",
     epique: "#a855f7",
+    legendaire: "#f97316",
+    mythique: "#ec4899",
     divin: "#eab308",
-    eternel: "#ef4444"
+    ultime: "#ef4444",
+    secret: "#a855f7",
+    eternel: "#ef4444",
+    STI: "#ec4899"
 };
 
 const RARITY_WEIGHTS = {
@@ -132,9 +142,13 @@ async function tryOpenChestApiForQty(itemId, qty) {
                     quantity: safeQty
                 })
             });
-            if (!response.ok) continue;
+            if (!response.ok){
+              return alert("Erreur lors de l'ouverture");
+            };
             const payload = await response.json();
-            if (!payload?.success) continue;
+            if (!payload?.success){
+              return alert("Erreur lors de l'ouverture");
+            };
             const chests = Array.isArray(payload?.chests) ? payload.chests : [];
             const opened = chests.length || safeQty;
             return { handled: true, opened: Math.max(0, opened), chests };
@@ -206,12 +220,6 @@ function pickRandomItem(data, rarity) {
 }
 
 async function playOpeningAnimation(qty, itemName, crateEmoji = "📦", realChests = []) {
-    const data = await fetchBrainrotItems();
-    if (!data) {
-        alert(`Ouverture simulée: ${qty}x ${itemName}`);
-        return;
-    }
-
     animationState.skipping = false;
 
     ui.openingOverlay.classList.remove("hidden");
@@ -259,11 +267,9 @@ async function playOpeningAnimation(qty, itemName, crateEmoji = "📦", realChes
     }
 
     const items = [];
-    const keys = Object.keys(data); 
 
     if (realChests && realChests.length > 0) {
-        for (let chestIndex = 0; chestIndex < realChests.length; chestIndex++) {
-            const chest = realChests[chestIndex];
+        for (const chest of realChests) {
             if (chest.rewards && Array.isArray(chest.rewards)) {
                 for (const reward of chest.rewards) {
                     if (reward.type === "Card") {
@@ -280,28 +286,10 @@ async function playOpeningAnimation(qty, itemName, crateEmoji = "📦", realChes
             }
         }
     }
-    
-    if (items.length === 0) {
-        for (let i = 0; i < qty; i++) {
-            let rarity = "commun";
-            const rand = Math.random() * 100;
-            let accum = 0;
-            for (const [r, w] of Object.entries(RARITY_WEIGHTS)) {
-                accum += w;
-                if (rand <= accum) {
-                    rarity = r;
-                    break;
-                }
-            }
 
-            const category = data[rarity];
-            const pool = category?.items || [];
-            const item = pool.length > 0 
-                ? pool[Math.floor(Math.random() * pool.length)] 
-                : { name: "Mystère", emoji: "❓", cps: 0, image: "" };
-                
-            items.push({ ...item, rarity });
-        }
+    if (items.length === 0) {
+        alert(`Erreur`);
+        return;
     }
 
     ui.crateContainer.classList.add("hidden");
@@ -421,7 +409,7 @@ function formatCompactPrice(value) {
     if (num >= 1_000) {
         return `${(num / 1_000).toFixed(2).replace(/\.00$/, "")}K`;
     }
-    return `${num}`;
+    return `${(Math.round(num * 100) / 100).toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1")}`;
 }
 
 async function fetchUserInventory() {
@@ -578,14 +566,30 @@ async function buyShopItemByApi(itemId, qty) {
 
 function normalizeShopData(payload) {
     const chestList = Array.isArray(payload?.result?.result) ? payload.result.result : [];
-    const items = chestList.map((chest) => ({
-        id: chest?.id,
-        nom: chest?.name || "Caisse inconnue",
-        emoji: "📦",
-        prix: Number(chest?.baseCoins || 0),
-        probabilites: {},
-        description: chest?.description || ""
-    }));
+    const items = chestList.map((chest) => {
+        // Grouper les loots par rarity
+        const lootsByRarity = {};
+        if (Array.isArray(chest?.loot)) {
+            chest.loot.forEach(loot => {
+                const rarity = loot?.rarity || "unknown";
+                const dropRate = Number(loot?.dropRate || 0);
+                if (!lootsByRarity[rarity]) {
+                    lootsByRarity[rarity] = 0;
+                }
+                lootsByRarity[rarity] += dropRate * 100;
+            });
+        }
+        
+        return {
+            id: chest?.id,
+            nom: chest?.name || "Caisse inconnue",
+            emoji: chest?.icon || "📦",
+            prix: Number(chest?.baseCoins || 0),
+            probabilites: lootsByRarity,
+            description: chest?.description || "",
+            loot: chest?.loot || []
+        };
+    });
     return {
         categories: {
             caisses: items,
@@ -629,8 +633,26 @@ function updateModalActionTexts() {
     if (!modalState.item) return;
     const total = getTotalPrice(modalState.item, modalState.qty);
     const totalText = `${formatCompactPrice(total)} 💰`;
+    const currentGold = getSimulatedGoldNow();
+    const canAfford = currentGold >= total;
+    
     ui.buyModalToInventory.textContent = `Mettre en inv • ${totalText}`;
     ui.buyModalOpenNow.textContent = `Ouvrir tout de suite • ${totalText}`;
+    
+    ui.buyModalToInventory.disabled = !canAfford;
+    ui.buyModalOpenNow.disabled = !canAfford;
+    ui.buyModalToInventory.classList.toggle("disabled", !canAfford);
+    ui.buyModalOpenNow.classList.toggle("disabled", !canAfford);
+    
+    if (!canAfford) {
+        const needed = total - currentGold;
+        const tooltip = `Tu as besoin de ${formatCompactPrice(needed)} 💰 de plus`;
+        ui.buyModalToInventory.title = tooltip;
+        ui.buyModalOpenNow.title = tooltip;
+    } else {
+        ui.buyModalToInventory.title = "";
+        ui.buyModalOpenNow.title = "";
+    }
 }
 
 function updateBulk100Availability() {
@@ -667,6 +689,16 @@ function openBuyModal(item, category) {
     document.body.classList.add("no-scroll");
     lucide.createIcons();
     syncEconomyFromServer({ forceGoldSync: true });
+    
+    // Mettre à jour l'état des boutons tous les 500ms
+    const updateButtonsInterval = setInterval(() => {
+        if (ui.buyModal.classList.contains("hidden")) {
+            clearInterval(updateButtonsInterval);
+            return;
+        }
+        if (Date.now() < purchaseBlockedUntil) return;
+        updateModalActionTexts();
+    }, 500);
 }
 
 function closeBuyModal() {
@@ -700,6 +732,25 @@ function markBulk100UsageIfNeeded() {
 
 function purchaseToInventory() {
     if (!canPurchaseCurrentSelection()) return;
+    if (Date.now() < purchaseBlockedUntil) return;
+    
+    const total = getTotalPrice(modalState.item, modalState.qty);
+    const currentGold = getSimulatedGoldNow();
+    if (currentGold < total) {
+        const needed = total - currentGold;
+        alert(`Tu as besoin de ${formatCompactPrice(needed)} 💰 de plus pour effectuer cet achat.`);
+        return;
+    }
+
+    purchaseBlockedUntil = Date.now() + 2000;
+    ui.buyModalToInventory.disabled = true;
+    ui.buyModalOpenNow.disabled = true;
+    setTimeout(() => {
+        ui.buyModalToInventory.disabled = false;
+        ui.buyModalOpenNow.disabled = false;
+        updateModalActionTexts();
+    }, 2000);
+    
     syncEconomyFromServer({ forceGoldSync: true })
         .then(() => buyShopItemByApi(modalState.item.id, modalState.qty))
         .then(async ({ bought, outOfMoney }) => {
@@ -717,10 +768,29 @@ function purchaseToInventory() {
 
 async function purchaseOpenNow() {
     if (!canPurchaseCurrentSelection()) return;
+    if (Date.now() < purchaseBlockedUntil) return;
     const qty = modalState.qty;
     const item = modalState.item;
 
     await syncEconomyFromServer({ forceGoldSync: true });
+    
+    const total = getTotalPrice(item, qty);
+    const currentGold = getSimulatedGoldNow();
+    if (currentGold < total) {
+        const needed = total - currentGold;
+        alert(`Tu as besoin de ${formatCompactPrice(needed)} 💰 de plus pour effectuer cet achat.`);
+        return;
+    }
+
+    purchaseBlockedUntil = Date.now() + 2000;
+    ui.buyModalToInventory.disabled = true;
+    ui.buyModalOpenNow.disabled = true;
+    setTimeout(() => {
+        ui.buyModalToInventory.disabled = false;
+        ui.buyModalOpenNow.disabled = false;
+        updateModalActionTexts();
+    }, 2000);
+    
     const { bought, outOfMoney } = await buyShopItemByApi(item.id, qty);
     if (bought <= 0) {
         alert(outOfMoney ? "Vous n'avez pas assez d'argent pour ouvrir ce coffre." : "Achat impossible pour le moment.");
@@ -746,11 +816,13 @@ async function purchaseOpenNow() {
 }
 
 function openInventoryOpenModal(item, ownedQty, cardElement) {
+    const maxQty = Math.min(ownedQty, 50);
+
     inventoryOpenState = { item, ownedQty, cardElement };
     ui.openInventoryItemName.textContent = `${item.emoji || "📦"} ${item.nom}`;
     ui.openInventoryQty.value = "1";
-    ui.openInventoryQty.max = `${ownedQty}`;
-    ui.openInventoryMax.textContent = `Tu possèdes ${formatCompactPrice(ownedQty)} exemplaire(s).`;
+    ui.openInventoryQty.max = `${maxQty}`;
+    ui.openInventoryMax.textContent = `Tu possèdes ${formatCompactPrice(ownedQty)} exemplaire(s). (max 50 utilisables)`;
     ui.openInventoryModal.classList.remove("hidden");
     document.body.classList.add("no-scroll");
     lucide.createIcons();
@@ -797,11 +869,38 @@ async function confirmOpenInventoryQuantity() {
     renderShop(currentShop);
 }
 
+function createLootDisplay(lootsByRarity) {
+    const rarityOrder = ["commun", "peu-commun", "rare", "tres-rare", "epique", "legendaire", "mythique", "divin", "ultime", "secret", "ancestral", "eternel", "STI"];
+    
+    const sortedRarities = Object.entries(lootsByRarity)
+        .sort((a, b) => {
+            const indexA = rarityOrder.indexOf(a[0]);
+            const indexB = rarityOrder.indexOf(b[0]);
+            return indexA - indexB;
+        });
+    
+    if (sortedRarities.length === 0) {
+        return '<div class="loot-list">Aucun loot disponible</div>';
+    }
+    
+    const lootHTML = sortedRarities.map(([rarity, percentage]) => {
+        const color = RARITY_COLORS[rarity] || "#a3a3a3";
+        const displayPercentage = percentage.toFixed(1);
+        return `<div class="loot-item" style="border-left: 3px solid ${color}">
+            <span class="loot-rarity" style="color: ${color}">${rarity.toUpperCase()}</span>
+            <span class="loot-percentage">${displayPercentage}%</span>
+        </div>`;
+    }).join('');
+    
+    return `<div class="loot-list">${lootHTML}</div>`;
+}
+
 function createBuyCard(item, category) {
     const card = document.createElement("article");
     card.className = "shop-card";
 
     const count = getItemCount(item.id);
+    const lootDisplay = createLootDisplay(item.probabilites);
 
     card.innerHTML = `
         <div class="shop-card-head">
@@ -809,13 +908,44 @@ function createBuyCard(item, category) {
             <div class="shop-card-price">${formatCompactPrice(item.prix)} 💰</div>
         </div>
         <div class="shop-card-details">Possédé: <strong>${count}</strong></div>
+        ${lootDisplay}
         <button class="buy-btn">Acheter</button>
     `;
 
     const buyBtn = card.querySelector(".buy-btn");
+    
+    const updateButtonState = () => {
+        const currentGold = getSimulatedGoldNow();
+        const canAfford = currentGold >= item.prix;
+        buyBtn.disabled = !canAfford;
+        buyBtn.classList.toggle("disabled", !canAfford);
+        if (!canAfford) {
+            buyBtn.title = `Tu as besoin de ${formatCompactPrice(item.prix - currentGold)} 💰 de plus`;
+        } else {
+            buyBtn.title = "";
+        }
+    };
+    
+    updateButtonState();
+    
     buyBtn.addEventListener("click", () => {
-        openBuyModal(item, category);
+        updateButtonState();
+        if (!buyBtn.disabled) {
+            openBuyModal(item, category);
+        }
     });
+    
+    // Mettre à jour l'état du bouton tous les 500ms quand le gold change
+    const updateInterval = setInterval(updateButtonState, 500);
+    
+    // Nettoyer l'intervalle quand la carte est retirée du DOM
+    const observer = new MutationObserver((mutations) => {
+        if (!document.contains(card)) {
+            clearInterval(updateInterval);
+            observer.disconnect();
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
 
     return card;
 }
@@ -939,6 +1069,10 @@ async function loadShop() {
         `;
     } finally {
         GlobalLoader.hide(true);
+        // Afficher le modal de remerciement aux bêta testeurs
+        if (window.BetaTesterModal) {
+            window.BetaTesterModal.show();
+        }
     }
 }
 
@@ -947,7 +1081,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.wallet.textContent = `${formatCompactPrice(getRandomDisplayMoney())} 💰`;
     setInterval(() => {
         renderWalletFromEconomy();
-    }, 1000);
+    }, 100);
     setInterval(() => {
         syncEconomyFromServer({ forceGoldSync: true });
     }, GOLD_SYNC_INTERVAL_MS);
@@ -1066,4 +1200,3 @@ document.addEventListener("DOMContentLoaded", () => {
 
     loadShop();
 });
-

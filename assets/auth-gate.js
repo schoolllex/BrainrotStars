@@ -313,6 +313,11 @@
         document.dispatchEvent(new CustomEvent("brainrot:auth-ready", { detail: { token: authReadyToken } }));
     }
 
+    function isIndexPage() {
+        const path = window.location.pathname;
+        return path.endsWith("index.html") || path.endsWith("/index/") || path === "/" || path.endsWith("/index");
+    }
+
     async function ensureAuthReady() {
         const existing = getAuthToken();
         if (existing) {
@@ -322,6 +327,10 @@
                 return existing;
             }
             clearAuthTokens();
+        }
+        if (!isIndexPage()) {
+            window.location.href = "../index/index.html";
+            return "";
         }
         const selectedToken = await openAuthGate();
         resolveAuth(selectedToken);

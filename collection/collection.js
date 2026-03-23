@@ -7,6 +7,21 @@ const API_BASE_URL = "https://darkgoldenrod-frog-258465.hostingersite.com";
 const USER_ROUTE_BASES = ["/user"];
 const TOKEN_STORAGE_KEYS = ["brainrot_token", "token", "auth_token", "jwt_token", "jwt"];
 
+const RARITY_ORDER = [
+    "commun",
+    "peu commun",
+    "rare",
+    "très rare",
+    "légendaire",
+    "épique",
+    "mythique",
+    "ultime",
+    "divin",
+    "secret",
+    "ancestral",
+    "éternel"
+];
+
 let allBrainrots = [];
 let allCardsFromBackend = [];
 const ownedFromBackend = {
@@ -101,6 +116,21 @@ function getRarityColor(rarity) {
     return "#a3a3a3";
 }
 
+function getRarityIndex(rarity) {
+    const normalized = (rarity || "").toLowerCase().replace(/-/g, " ");
+    const index = RARITY_ORDER.indexOf(normalized);
+    return index === -1 ? RARITY_ORDER.length : index;
+}
+
+function formatCompact(value) {
+    const num = Number(value || 0);
+    if (num >= 1_000_000_000_000) return `${(num / 1_000_000_000_000).toFixed(2).replace(/\.00$/, "")}T`;
+    if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(2).replace(/\.00$/, "")}B`;
+    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2).replace(/\.00$/, "")}M`;
+    if (num >= 1_000) return `${(num / 1_000).toFixed(2).replace(/\.00$/, "")}K`;
+    return `${Math.round(num * 100) / 100}`;
+}
+
 async function loadCollection() {
     GlobalLoader.show();
     try {
@@ -136,7 +166,8 @@ function populateRarityFilter() {
         }
     });
     
-    for (const rarity of Array.from(rarities).sort()) {
+    const sortedRarities = Array.from(rarities).sort((a, b) => getRarityIndex(a) - getRarityIndex(b));
+    for (const rarity of sortedRarities) {
         const option = document.createElement("option");
         option.value = rarity;
         option.textContent = rarity.replace(/-/g, " ").toUpperCase();
@@ -153,7 +184,7 @@ function applyFiltersAndSort() {
         const isOwned = isOwnedItem(card);
         const level = getItemLevel(card);
         const baseCps = card.goldPerSec || card.cps || 1;
-        const actualCps = baseCps * Math.pow(1.85, level - 1);
+        const actualCps = baseCps * Math.pow(1.15, level - 1);
         const rarityColor = getRarityColor(card.rarity);
         
         allBrainrots.push({
@@ -180,6 +211,10 @@ function applyFiltersAndSort() {
         allBrainrots.sort((a, b) => b.cps - a.cps);
     } else if (sortValue === "level") {
         allBrainrots.sort((a, b) => b.level - a.level);
+    } else if (sortValue === "rarity-asc") {
+        allBrainrots.sort((a, b) => getRarityIndex(a.rarity) - getRarityIndex(b.rarity));
+    } else if (sortValue === "rarity-desc") {
+        allBrainrots.sort((a, b) => getRarityIndex(b.rarity) - getRarityIndex(a.rarity));
     }
     
     renderCollection();
@@ -220,8 +255,7 @@ function renderCollection() {
 
         const cpsTag = document.createElement("div");
         cpsTag.className = "card-cps";
-        const displayCps = Math.round(brainrot.cps * 100) / 100;
-        cpsTag.innerHTML = `<i data-lucide="coins" style="width: 14px; height: 14px;"></i> ${displayCps}/s`;
+        cpsTag.innerHTML = `<i data-lucide="coins" style="width: 14px; height: 14px;"></i> ${formatCompact(brainrot.cps)}/s`;
 
         card.appendChild(levelBadge);
         card.appendChild(img);

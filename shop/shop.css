@@ -254,6 +254,60 @@ body {
     filter: brightness(1.08);
 }
 
+.buy-btn:disabled,
+.buy-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.28), rgba(75, 85, 99, 0.22));
+    border-color: rgba(107, 114, 128, 0.4);
+}
+
+.buy-btn:disabled:hover,
+.buy-btn.disabled:hover {
+    transform: none;
+    filter: none;
+}
+
+.loot-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.5rem 0.4rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.loot-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.3rem 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    transition: background 0.2s ease;
+}
+
+.loot-item:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.loot-rarity {
+    font-weight: 700;
+    flex: 1;
+    text-align: left;
+}
+
+.loot-percentage {
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 600;
+    min-width: 45px;
+    text-align: right;
+}
+
 .inventory-open-btn {
     border: 1px solid rgba(59, 130, 246, 0.62);
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(37, 99, 235, 0.2));
@@ -438,6 +492,20 @@ body {
 .buy-modal-action:hover {
     transform: translateY(-1px);
     filter: brightness(1.08);
+}
+
+.buy-modal-action:disabled,
+.buy-modal-action.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.28), rgba(75, 85, 99, 0.22));
+    border-color: rgba(107, 114, 128, 0.4);
+}
+
+.buy-modal-action:disabled:hover,
+.buy-modal-action.disabled:hover {
+    transform: none;
+    filter: none;
 }
 
 .buy-modal-action-left {
@@ -844,10 +912,18 @@ body {
 
 
 .multi-card-commun { border-color: rgba(163, 163, 163, 0.3); }
-.multi-card-ancestral { border-color: rgba(59, 130, 246, 0.3); box-shadow: 0 0 10px rgba(59, 130, 246, 0.1); }
-.multi-card-epique { border-color: rgba(168, 85, 247, 0.3); box-shadow: 0 0 10px rgba(168, 85, 247, 0.15); }
-.multi-card-divin { border-color: rgba(234, 179, 8, 0.3); box-shadow: 0 0 10px rgba(234, 179, 8, 0.2); }
-.multi-card-eternel { border-color: rgba(239, 68, 68, 0.3); box-shadow: 0 0 10px rgba(239, 68, 68, 0.25); }
+.multi-card-peu-commun { border-color: rgba(34, 197, 94, 0.4); box-shadow: 0 0 10px rgba(34, 197, 94, 0.15); }
+.multi-card-rare { border-color: rgba(59, 130, 246, 0.4); box-shadow: 0 0 10px rgba(59, 130, 246, 0.15); }
+.multi-card-tres-rare { border-color: rgba(139, 92, 246, 0.4); box-shadow: 0 0 10px rgba(139, 92, 246, 0.15); }
+.multi-card-ancestral { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 0 15px rgba(59, 130, 246, 0.25); }
+.multi-card-epique { border-color: rgba(168, 85, 247, 0.5); box-shadow: 0 0 15px rgba(168, 85, 247, 0.25); }
+.multi-card-legendaire { border-color: rgba(249, 115, 22, 0.5); box-shadow: 0 0 15px rgba(249, 115, 22, 0.25); }
+.multi-card-mythique { border-color: rgba(236, 72, 153, 0.5); box-shadow: 0 0 15px rgba(236, 72, 153, 0.25); }
+.multi-card-divin { border-color: rgba(234, 179, 8, 0.5); box-shadow: 0 0 15px rgba(234, 179, 8, 0.3); }
+.multi-card-ultime { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 0 15px rgba(239, 68, 68, 0.25); }
+.multi-card-secret { border-color: rgba(168, 85, 247, 0.6); box-shadow: 0 0 20px rgba(168, 85, 247, 0.35); }
+.multi-card-eternel { border-color: rgba(239, 68, 68, 0.6); box-shadow: 0 0 20px rgba(239, 68, 68, 0.35); }
+.multi-card-STI { border-color: rgba(236, 72, 153, 0.7); box-shadow: 0 0 25px rgba(236, 72, 153, 0.5); }
 
 @keyframes reward-appear {
     from { transform: scale(0.5); opacity: 0; }
