@@ -195,11 +195,14 @@ body {
 .btn-play {
     grid-column: 1 / -1;
     position: relative;
+    width: 100%;
 
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
+    gap: 0.5rem;
 
     padding: 1.25rem;
     background: var(--primary-grad);
@@ -209,9 +212,11 @@ body {
     color: white;
     font-size: 1.5rem;
     font-weight: 900;
+    font-family: inherit;
     cursor: pointer;
     overflow: hidden;
     transition: transform 0.1s;
+    text-decoration: none;
 }
 
 .btn-play:active { transform: translateY(2px); border-bottom: 0; }
