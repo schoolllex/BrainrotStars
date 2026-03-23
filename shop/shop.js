@@ -861,8 +861,6 @@ function renderInventory(data) {
         `;
         const openBtn = card.querySelector(".inventory-open-btn");
         openBtn.addEventListener("click", () => {
-            if(qty > 150)
-                return alert("La quantité maximum est de 100");
             openInventoryOpenModal(item, qty, card);
         });
         ui.inventoryGrid.appendChild(card);
