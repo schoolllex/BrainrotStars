@@ -815,6 +815,7 @@ async function purchaseOpenNow() {
     await syncEconomyFromServer({ forceGoldSync: true });
 }
 
+
 function openInventoryOpenModal(item, ownedQty, cardElement) {
     const maxQty = Math.min(ownedQty, 50);
 
