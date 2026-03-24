@@ -184,7 +184,7 @@ function applyFiltersAndSort() {
         const isOwned = isOwnedItem(card);
         const level = getItemLevel(card);
         const baseCps = card.goldPerSec || card.cps || 1;
-        const actualCps = baseCps * level * 0.8;
+        const actualCps = baseCps + baseCps * (level - 1) * 0.8;
         const rarityColor = getRarityColor(card.rarity);
         
         allBrainrots.push({
