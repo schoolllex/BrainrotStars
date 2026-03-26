@@ -2,8 +2,8 @@ const API_BASE_URL = "https://darkgoldenrod-frog-258465.hostingersite.com";
 const SHOP_ROUTE_BASE = "/shop";
 const USER_ROUTE_BASES = ["/user"];
 const SHOP_BULK_100_KEY = "brainrot_shop_bulk_100_last_used";
-const BULK_100_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-const SHOP_BULK_100_ENABLED = false;
+const BULK_100_COOLDOWN_MS = 60 * 60 * 1000;
+const SHOP_BULK_100_ENABLED = true;
 const GOLD_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 
 const ui = {
@@ -660,11 +660,11 @@ function updateBulk100Availability() {
     const remaining = getBulk100RemainingMs();
     ui.buyQty100.disabled = !available;
     if (!SHOP_BULK_100_ENABLED) {
-        ui.buyQty100.textContent = "Acheter x100 • Bientôt disponible";
+        ui.buyQty100.textContent = "Acheter x50 • Bientôt disponible";
     } else {
         ui.buyQty100.textContent = available
-            ? "Acheter x100 • 1 fois / 24h"
-            : `Acheter x100 • ${formatRemainingTime(remaining)}`;
+            ? "Acheter x50 • 1 fois / 1h"
+            : `Acheter x50 • ${formatRemainingTime(remaining)}`;
     }
     if (!available && modalState.qty === 100) {
         modalState.qty = 1;
@@ -814,7 +814,6 @@ async function purchaseOpenNow() {
     renderShop(currentShop);
     await syncEconomyFromServer({ forceGoldSync: true });
 }
-
 
 function openInventoryOpenModal(item, ownedQty, cardElement) {
     const maxQty = Math.min(ownedQty, 50);
@@ -1070,10 +1069,7 @@ async function loadShop() {
         `;
     } finally {
         GlobalLoader.hide(true);
-        // Afficher le modal de remerciement aux bêta testeurs
-        if (window.BetaTesterModal) {
-            window.BetaTesterModal.show();
-        }
+
     }
 }
 

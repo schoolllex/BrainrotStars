@@ -159,14 +159,6 @@ const App = {
     },
 
     bindEvents() {
-        const playFriendBtn = document.querySelector('.btn-play');
-        if (playFriendBtn) {
-            playFriendBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                alert("Cette fonctionnalité n'est pas encore prête. Attendez la prochaine mise à jour !");
-            });
-        }
-
         if (this.ui.mainBtn) {
             this.ui.mainBtn.addEventListener('click', () => {
                 alert("Matchmaking en cours...");
@@ -223,10 +215,4 @@ const App = {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    App.init();
-    // Afficher le modal de remerciement aux bêta testeurs
-    if (window.BetaTesterModal) {
-        window.BetaTesterModal.show();
-    }
-});
+document.addEventListener('DOMContentLoaded', () => App.init());

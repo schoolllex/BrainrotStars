@@ -63,7 +63,7 @@
                             <i data-lucide="coins"></i>
                             <span>Gagner des pièces</span>
                         </div>
-                        <p>Tes Brainrots génèrent des pièces par seconde automatiquement. Plus ta carte est de haut niveau, plus elle rapporte. Le CPS affiché est calculé selon la formule : <strong>CPS de base × 1,80^(niveau - 1)</strong>.</p>
+                        <p>Tes Brainrots génèrent des pièces par seconde automatiquement. Plus ta carte est de haut niveau, plus elle rapporte. Le CPS affiché est calculé selon la formule : <strong>CPS de base × (niveau - 1) × 0,80</strong>.</p>
                     </article>
                     <article class="wiki-entry">
                         <div class="wiki-entry-title">
@@ -75,7 +75,7 @@
                     <article class="wiki-entry">
                         <div class="wiki-entry-title">
                             <i data-lucide="star"></i>
-                            <span>Rarités</span>
+                            <span>Raretés</span>
                         </div>
                         <p>Les cartes sont classées par rareté : <strong>Commun → Peu Commun → Rare → Très Rare → Légendaire → Épique → Mythique → Ultime → Divin → Secret → Ancestral → Éternel</strong>. Plus la rareté est élevée, plus le CPS de base est puissant.</p>
                     </article>
@@ -107,38 +107,34 @@
                 <div class="card-header">
                     <i data-lucide="scroll-text"></i>
                     <h2>Patchnote</h2>
-                    <span class="version-badge">V1.0.1</span>
-                    <span class="version-date">23/03/2026</span>
+                    <span class="version-badge">V1.0.2</span>
+                    <span class="version-date">26/03/2026</span>
                 </div>
-                
+
                 <div class="patchnote-content">
                     <div class="patchnote-section">
                         <div class="patchnote-section-header">
-                            <i data-lucide="wrench"></i>
-                            <h3>🐛 Réparations des bugs</h3>
+                            <i data-lucide="plus-circle"></i>
+                            <h3>✨ Nouveautés</h3>
                         </div>
                         <ul class="patchnote-list">
-                            <li><span class="fix-badge">FIX</span> Global CPS - Correction du calcul du CPS total</li>
-                            <li><span class="fix-badge">FIX</span> Caisse - Nerf des probabilités de rareté</li>
-                            <li><span class="fix-badge">FIX</span> Emoji caisse - Chargement dynamique des emojis depuis la DB</li>
-                            <li><span class="fix-badge">FIX</span> Animation caisse - Améliorations des animations d'ouverture</li>
-                            <li><span class="fix-badge">FIX</span> Affichage nombre - Correction du formatage des grands nombres</li>
-                            <li><span class="fix-badge">FIX</span> Classement - Correction du tri et de l'affichage du classement</li>
+                            <li><span class="new-badge">NOUVEAU</span> Ajout de la carte Lucarino Chirorino</li>
+                            <li><span class="new-badge">NOUVEAU</span> Emojis uniques pour chaque type de caisse</li>
+                            <li><span class="new-badge">NOUVEAU</span> Wiki mis à jour avec les bonnes informations</li>
                         </ul>
                     </div>
 
                     <div class="patchnote-section">
                         <div class="patchnote-section-header">
-                            <i data-lucide="plus-circle"></i>
-                            <h3>✨ Nouvelles fonctionnalités</h3>
+                            <i data-lucide="wrench"></i>
+                            <h3>🐛 Corrections de bugs</h3>
                         </div>
                         <ul class="patchnote-list">
-                            <li><span class="new-badge">NOUVEAU</span> Infos du jeu - Section wiki complète avec explications</li>
-                            <li><span class="new-badge">NOUVEAU</span> Bouton Supprimer ami - Suppression facile des amis avec confirmation</li>
-                            <li><span class="new-badge">NOUVEAU</span> Marché des Brainrot - Accès au marché des cartes (en développement)</li>
-                            <li><span class="new-badge">NOUVEAU</span> Token de connexion - Affichage et copie du token d'authentification</li>
-                            <li><span class="new-badge">NOUVEAU</span> Reset progression - Bouton pour réinitialiser ta progression</li>
-                            <li><span class="new-badge">NOUVEAU</span> Popup Bêta - Message de remerciement aux bêta-testeurs</li>
+                            <li><span class="fix-badge">FIX</span> Bugs de lundi entièrement réglés</li>
+                            <li><span class="fix-badge">FIX</span> Bug de duplication de cartes corrigé</li>
+                            <li><span class="fix-badge">FIX</span> Bug d'argent négatif corrigé</li>
+                            <li><span class="fix-badge">FIX</span> Fautes de frappe corrigées sur plusieurs pages</li>
+                            <li><span class="fix-badge">FIX</span> Nombreux petits bugs réglés</li>
                         </ul>
                     </div>
 
@@ -148,38 +144,14 @@
                             <h3>⚡ Améliorations</h3>
                         </div>
                         <ul class="patchnote-list">
-                            <li><span class="improve-badge">AMÉLIORATION</span> Affichage des loots - Meilleure visibilité des rarités dans le shop</li>
-                            <li><span class="improve-badge">AMÉLIORATION</span> Boutons désactivés - Grisement des boutons si pas assez d'argent</li>
-                            <li><span class="improve-badge">AMÉLIORATION</span> Interface responsive - Amélioration du design mobile</li>
-                            <li><span class="improve-badge">AMÉLIORATION</span> Performance - Optimisation du chargement des pages</li>
+                            <li><span class="improve-badge">AMÉLIORATION</span> Suppression de tout ce qui concernait la bêta</li>
+                            <li><span class="improve-badge">AMÉLIORATION</span> Travail interne continu sur les futures mises à jour</li>
                         </ul>
                     </div>
 
-                    <div class="patchnote-section">
-                        <div class="patchnote-section-header">
-                            <i data-lucide="message-square"></i>
-                            <h3>📝 Notes importantes</h3>
-                        </div>
-                        <div class="patchnote-notes">
-                            <p>• Les données de progression des bêta-testeurs ont été delete</p>
-                            <p>• Certaines fonctionnalités sont encore en développement</p>
-                            <p>• Merci pour vos retours et suggestions!</p>
-                        </div>
+                    <div class="patchnote-notes">
+                        <p>🔧 Rebirth, Game, Achievements et Marché des Brainrot sont en cours de développement — restez connectés pour la suite !</p>
                     </div>
-                </div>
-            </section>
-
-            <section class="credits-card">
-                <div class="card-header">
-                    <i data-lucide="heart"></i>
-                    <h2>Merci à la beta !</h2>
-                </div>
-                <p class="credits-thanks-text">Un grand merci à toutes les personnes qui ont testé, aidé et donné des idées durant la bêta. Ce jeu n'aurait pas été le même sans vous. 🙏</p>
-                <div class="credits-list" style="margin-top: 0.9rem;">
-                    <article class="credit-row beta-row">
-                        <h2>🧪 Bêta-testeurs & contributeurs</h2>
-                        <p class="beta-names">Merci à tous ceux qui ont joué, signalé des bugs et proposé des idées — vous savez qui vous êtes !</p>
-                    </article>
                 </div>
             </section>
 
