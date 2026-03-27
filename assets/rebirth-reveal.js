@@ -380,4 +380,6 @@
 
     // Lancement automatique
     setTimeout(startReveal, 500);
+
+    setTimeout(closeReveal, 30000);
 })();
