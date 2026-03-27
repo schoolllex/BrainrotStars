@@ -1,5 +1,5 @@
 const BP_PRICE = 100_000;
-const API_BASE_URL = "https://darkgoldenrod-frog-258465.hostingersite.com/";
+const API_BASE_URL = "https://darkgoldenrod-frog-258465.hostingersite.com";
 const PASS_ROUTE_BASE = "/pass";
 const USER_ROUTE_BASES = ["/user"];
 const DEFAULT_BATTLEPASS_REWARDS = [

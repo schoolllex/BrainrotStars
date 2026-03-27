@@ -8,7 +8,7 @@ const publishSection = document.getElementById("publish-score-section");
 const userRankElement = document.getElementById("user-rank");
 const userCpsElement = document.getElementById("user-cps");
 const userPseudoDisplay = document.getElementById("user-pseudo-display");
-const API_BASE_URL = "https://darkgoldenrod-frog-258465.hostingersite.com/";
+const API_BASE_URL = "https://darkgoldenrod-frog-258465.hostingersite.com";
 const LEADERBOARD_ROUTE_BASE = "/leaderboard";
 
 let userStats = null;
