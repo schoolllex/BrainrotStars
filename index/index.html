@@ -3,731 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BrainrotStars — Maintenance</title>
+    <title>BrainrotStars</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/schoolllex/images/refs/heads/main/BrainrotStar/favicon.ico">
-    <style>
-        :root {
-            --bg: #0a0a0a;
-            --card-bg: rgba(23, 23, 23, 0.8);
-            --card-grad: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025));
-            --primary-grad: linear-gradient(135deg, #f97316, #dc2626);
-            --border: rgba(255,255,255,0.05);
-            --border-strong: rgba(255,255,255,0.09);
-            --shadow: 0 10px 24px rgba(0,0,0,0.35);
-            --text: #ffffff;
-            --muted: #a3a3a3;
-            --orange: #f97316;
-            --red: #dc2626;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            overflow-x: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-        }
-
-        /* ── Background glows ── */
-        .bg-glows {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-        }
-        .glow {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(120px);
-            opacity: 0.15;
-        }
-        .glow-1 { width: 40vw; height: 40vw; top: -10%; left: -10%; background: #ea580c; }
-        .glow-2 { width: 40vw; height: 40vw; bottom: -10%; right: -10%; background: #dc2626; }
-        .glow-3 { width: 30vw; height: 30vw; top: 40%; left: 50%; transform: translateX(-50%); background: #7c3aed; opacity: 0.08; animation: pulse-glow 4s ease-in-out infinite; }
-
-        @keyframes pulse-glow {
-            0%, 100% { opacity: 0.06; transform: translateX(-50%) scale(1); }
-            50% { opacity: 0.13; transform: translateX(-50%) scale(1.15); }
-        }
-
-        /* ── Wrapper ── */
-        .wrapper {
-            position: relative;
-            z-index: 1;
-            width: min(1100px, 96vw);
-            padding: 2.5rem 0 3rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2rem;
-        }
-
-        /* ── Logo ── */
-        .logo-wrap {
-            animation: logo-drop 0.7s cubic-bezier(0.2,0.9,0.3,1.2) both;
-        }
-        @keyframes logo-drop {
-            from { transform: translateY(-30px) scale(0.85); opacity: 0; }
-            to   { transform: translateY(0) scale(1); opacity: 1; }
-        }
-        .logo-img { height: 90px; width: auto; display: block; }
-
-        /* ── Main card ── */
-        .main-card {
-            width: 100%;
-            background: var(--card-grad);
-            border: 1px solid var(--border-strong);
-            border-radius: 28px;
-            backdrop-filter: blur(14px);
-            box-shadow: var(--shadow), 0 0 60px rgba(249,115,22,0.06);
-            padding: 2.5rem 2rem;
-            text-align: center;
-            animation: card-rise 0.7s 0.15s cubic-bezier(0.2,0.9,0.3,1.2) both;
-        }
-        @keyframes card-rise {
-            from { transform: translateY(24px); opacity: 0; }
-            to   { transform: translateY(0); opacity: 1; }
-        }
-
-        .maintenance-icon {
-            font-size: 3.8rem;
-            display: block;
-            margin-bottom: 1rem;
-            animation: spin-slow 8s linear infinite;
-        }
-        @keyframes spin-slow {
-            from { transform: rotate(0deg); }
-            to   { transform: rotate(360deg); }
-        }
-
-        .main-title {
-            font-size: clamp(1.6rem, 4vw, 2.4rem);
-            font-weight: 900;
-            background: var(--primary-grad);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.55rem;
-            line-height: 1.2;
-        }
-
-        .main-sub {
-            color: var(--muted);
-            font-size: 1.05rem;
-            line-height: 1.6;
-            max-width: 480px;
-            margin: 0 auto 1.6rem;
-        }
-        .main-sub strong {
-            color: #fb923c;
-            font-weight: 800;
-        }
-
-        /* version badge */
-        .version-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: linear-gradient(135deg, rgba(168,85,247,0.22), rgba(126,34,206,0.16));
-            border: 1px solid rgba(168,85,247,0.55);
-            border-radius: 999px;
-            padding: 0.45rem 1.1rem;
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: #d8b4fe;
-            box-shadow: 0 6px 18px rgba(168,85,247,0.2);
-            margin-bottom: 1.2rem;
-        }
-        .version-dot {
-            width: 7px; height: 7px;
-            border-radius: 50%;
-            background: #a855f7;
-            box-shadow: 0 0 6px #a855f7;
-            animation: blink 1.6s ease-in-out infinite;
-        }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-        /* ETA bar */
-        .eta-strip {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.6rem;
-            background: rgba(249,115,22,0.08);
-            border: 1px solid rgba(249,115,22,0.25);
-            border-radius: 14px;
-            padding: 0.7rem 1.2rem;
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: #fed7aa;
-        }
-        .eta-icon { font-size: 1.1rem; }
-
-        /* ── Game card ── */
-        .game-card {
-            width: 100%;
-            background: var(--card-grad);
-            border: 1px solid var(--border-strong);
-            border-radius: 24px;
-            backdrop-filter: blur(10px);
-            box-shadow: var(--shadow);
-            padding: 1.6rem 1.5rem 1.5rem;
-            animation: card-rise 0.7s 0.3s cubic-bezier(0.2,0.9,0.3,1.2) both;
-        }
-
-        .game-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .game-title {
-            font-size: 1rem;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .game-title-emoji { font-size: 1.15rem; }
-        .game-score-wrap {
-            display: flex;
-            gap: 1rem;
-            font-size: 0.82rem;
-            font-weight: 800;
-            color: var(--muted);
-        }
-        .game-score-wrap span { color: #fb923c; }
-
-        /* Canvas area */
-        .canvas-wrap {
-            position: relative;
-            border-radius: 16px;
-            overflow: hidden;
-            border: 1px solid rgba(249,115,22,0.2);
-            background: rgba(0,0,0,0.35);
-            cursor: pointer;
-        }
-        #game-canvas {
-            display: block;
-            width: 100%;
-            height: 160px;
-        }
-
-        /* overlay message */
-        .game-overlay {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 0.4rem;
-            background: rgba(10,10,10,0.72);
-            backdrop-filter: blur(4px);
-            border-radius: 16px;
-            transition: opacity 0.3s ease;
-        }
-        .game-overlay.hidden { opacity: 0; pointer-events: none; }
-        .overlay-emoji { font-size: 2.2rem; }
-        .overlay-text {
-            font-weight: 900;
-            font-size: 1rem;
-            color: #fff;
-        }
-        .overlay-hint {
-            color: var(--muted);
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .game-hint {
-            text-align: center;
-            color: var(--muted);
-            font-size: 0.78rem;
-            margin-top: 0.7rem;
-        }
-
-        /* ── What's new ── */
-        .whats-new-card {
-            width: 100%;
-            background: linear-gradient(135deg, rgba(249,115,22,0.08), rgba(220,38,38,0.06));
-            border: 1px solid rgba(249,115,22,0.28);
-            border-radius: 20px;
-            padding: 1.4rem 1.5rem;
-            animation: card-rise 0.7s 0.45s cubic-bezier(0.2,0.9,0.3,1.2) both;
-        }
-        .whats-new-title {
-            font-size: 0.95rem;
-            font-weight: 900;
-            color: #fb923c;
-            margin-bottom: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-        }
-        .new-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.65rem;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            font-size: 0.88rem;
-            color: #e5e5e5;
-            font-weight: 600;
-            line-height: 1.4;
-        }
-        .new-item:last-child { border-bottom: none; }
-        .new-item-badge {
-            flex-shrink: 0;
-            font-size: 0.68rem;
-            font-weight: 900;
-            padding: 0.2rem 0.55rem;
-            border-radius: 999px;
-            margin-top: 1px;
-        }
-        .badge-new  { background: rgba(34,197,94,0.18);  border: 1px solid rgba(34,197,94,0.5);  color: #86efac; }
-        .badge-fix  { background: rgba(56,189,248,0.18); border: 1px solid rgba(56,189,248,0.5); color: #7dd3fc; }
-        .badge-up   { background: rgba(168,85,247,0.18); border: 1px solid rgba(168,85,247,0.5); color: #d8b4fe; }
-
-        /* ── Footer ── */
-        .footer {
-            color: var(--muted);
-            font-size: 0.78rem;
-            text-align: center;
-            padding-bottom: 1.5rem;
-            animation: card-rise 0.7s 0.55s cubic-bezier(0.2,0.9,0.3,1.2) both;
-        }
-
-        @media (max-width: 500px) {
-            .wrapper { padding: 1.5rem 0 2rem; }
-            .main-card { padding: 1.8rem 1.2rem; }
-            #game-canvas { height: 130px; }
-        }
-    </style>
 </head>
 <body>
 
-<div class="bg-glows">
-    <div class="glow glow-1"></div>
-    <div class="glow glow-2"></div>
-    <div class="glow glow-3"></div>
-</div>
-
-<div class="wrapper">
-
-    <!-- Logo -->
-    <div class="logo-wrap">
-        <a href="../index/index.html">
-            <img src="https://raw.githubusercontent.com/schoolllex/images/refs/heads/main/BrainrotStar/BrainrotStar_logo_fc.png"
-                 alt="BrainrotStars" class="logo-img">
-        </a>
+    <div class="background-glow">
+        <div class="glow-1"></div>
+        <div class="glow-2"></div>
     </div>
 
-    <!-- Main message -->
-    <div class="main-card">
-        <span class="maintenance-icon">⚙️</span>
-        <div class="version-badge">
-            <div class="version-dot"></div>
-            Mise à jour V1.1.0 en cours
-        </div>
-        <h1 class="main-title">BrainrotStars revient très bientôt !</h1>
-        <p class="main-sub">
-            On est en train de tout préparer pour toi 🔧<br>
-            La <strong>V1.1.0</strong> arrive avec plein de nouveautés, accroche-toi !
-        </p>
-        <div class="eta-strip">
-            <span class="eta-icon">⏱️</span>
-            Maintenance en cours — retour imminent
+    <div class="container">
+        <header class="navbar">
+            <div class="logo">
+                <img src="https://raw.githubusercontent.com/schoolllex/images/refs/heads/main/BrainrotStar/BrainrotStar_logo_fc.png" alt="Brainrot Star" class="logo-image">
+            </div>
+            <button class="nav-toggle" type="button" aria-label="Ouvrir le menu" aria-expanded="false">
+                <i data-lucide="menu"></i>
+            </button>
+
+            <div class="nav-buttons">
+                <a href="../index/index.html" class="btn-nav nav-link">
+                    <i data-lucide="home"></i>
+                    <span>Accueil</span>
+                </a>
+                <a href="../ranking/ranking.html" class="btn-nav ranking nav-link">
+                    <i data-lucide="trophy"></i>
+                    <span>Classement</span>
+                </a>
+                <a href="../friends/friends.html" class="btn-nav friends nav-link has-badge">
+                    <i data-lucide="users"></i>
+                    <span>Amis</span>
+                    <span class="nav-badge hidden"></span>
+                </a>
+                <a href="../rebirth/rebirth.html" class="btn-nav rebirth nav-link">
+                    <i data-lucide="refresh-ccw"></i>
+                    <span>Rebirth</span>
+                </a>
+                <a href="../credits/credits.html" class="btn-nav nav-link">
+                    <i data-lucide="info"></i>
+                    <span>Infos du jeu</span>
+                </a>
+            </div>
+        </header>
+
+        <main class="content">
+            <div class="action-grid">
+                <a href="../game/game.html" class="btn-play nav-link" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <i data-lucide="swords"></i>
+                    Lancer une partie contre un ami
+                    <div class="shine"></div>
+                </a>
+
+                <a href="../shop/shop.html" class="btn-card orange nav-link">
+                    <i data-lucide="store"></i>
+                    <span>Boutique</span>
+                </a>
+
+                <a href="../collection/collection.html" class="btn-card purple" style="text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <i data-lucide="library"></i> Collection
+                </a>
+
+                <a href="../battlepass/battlepass.html" class="btn-card sky wide nav-link has-badge">
+                    <span class="btn-emoji">🎟️</span>
+                    <span>Passe de combat</span>
+                    <span class="nav-badge hidden" id="bp-notif-badge"></span>
+                </a>
+
+                <a href="../ah/ah.html" class="btn-card green wide nav-link">
+                    <span class="btn-emoji">🛒</span>
+                    <span>Marché des Brainrot</span>
+                </a>
+
+                <button id="btn-token" class="btn-card teal wide" type="button">
+                    <i data-lucide="key-round"></i>
+                    <span>Mon token de connexion</span>
+                </button>
+
+                <a href="../achievements/achievements.html" id="btn-achievements" class="btn-card yellow wide nav-link">
+                    <i data-lucide="medal"></i>
+                    <span>Achievements</span>
+                </a>
+            </div>
+
+            <section class="economy-grid">
+                <div class="economy-card">
+                    <div class="stat-info">
+                        <div class="icon-wrapper green"><i data-lucide="wallet"></i></div>
+                        <span>Argent total</span>
+                    </div>
+                    <span class="stat-number emerald" id="val-money">5,78M</span>
+                </div>
+
+                <div class="economy-card">
+                    <div class="stat-info">
+                        <div class="icon-wrapper yellow"><i data-lucide="coins"></i></div>
+                        <span>Pièces / sec</span>
+                    </div>
+                    <span class="stat-number gold" id="val-cps">+420 /s</span>
+                </div>
+            </section>
+
+            <section class="stats-container">
+                <p class="stats-title">Statistiques Globales</p>
+                
+                <div class="stat-row">
+                    <div class="stat-info">
+                        <div class="icon-wrapper red"><i data-lucide="brain"></i></div>
+                        <span>Brainrot Acquis</span>
+                    </div>
+                    <span class="stat-number" id="val-brainrots">14 420/69 000</span>
+                </div>
+
+                <div class="stat-row">
+                    <div class="stat-info">
+                        <div class="icon-wrapper purple"><i data-lucide="trophy"></i></div>
+                        <span>Achievements</span>
+                    </div>
+                    <span class="stat-number" id="val-achievements">Non disponible</span>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="token-modal-overlay" class="token-modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="token-modal-card">
+            <div class="token-modal-icon">🔑</div>
+            <h2 class="token-modal-title">Mon token de connexion</h2>
+            <p class="token-modal-warning">⚠️ Ne le diffuse jamais — quiconque possède ce token peut accéder à ton compte.</p>
+            <div class="token-modal-value-wrap">
+                <div id="token-modal-value" class="token-modal-value">Chargement...</div>
+                <button id="token-modal-copy" class="token-modal-copy-btn" type="button">Copier</button>
+            </div>
+            <p class="token-modal-tip">Garde-le bien au chaud, c'est ta seule façon de te reconnecter sur un nouvel appareil.</p>
+            <button id="token-modal-close" class="token-modal-close-btn" type="button">Fermer</button>
+            <p id="token-modal-feedback" class="token-modal-feedback"></p>
         </div>
     </div>
 
-    <!-- Mini game -->
-    <div class="game-card">
-        <div class="game-header">
-            <div class="game-title">
-                <span class="game-title-emoji">🧠</span>
-                Brainrot Runner — patiente un peu !
-            </div>
-            <div class="game-score-wrap">
-                Score : <span id="score-display">0</span>
-                &nbsp;|&nbsp; Best : <span id="best-display">0</span>
-            </div>
-        </div>
-
-        <div class="canvas-wrap" id="canvas-wrap">
-            <canvas id="game-canvas"></canvas>
-            <div class="game-overlay" id="game-overlay">
-                <div class="overlay-emoji" id="overlay-emoji">🧠</div>
-                <div class="overlay-text" id="overlay-text">Brainrot Runner</div>
-                <div class="overlay-hint" id="overlay-hint">Appuie / Espace / ↑ pour jouer</div>
-            </div>
-        </div>
-        <p class="game-hint">Saute par-dessus les obstacles en appuyant sur <kbd style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:5px;padding:1px 6px;font-size:0.75rem;">Espace</kbd> ou <kbd style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:5px;padding:1px 6px;font-size:0.75rem;">↑</kbd> — ou en tapant sur l'écran.</p>
+    <div id="global-loader" class="global-loader hidden" aria-hidden="true">
+        <div class="global-loader-spinner"></div>
     </div>
 
-
-
-</div>
-
-<script>
-(function() {
-    const canvas  = document.getElementById('game-canvas');
-    const ctx     = canvas.getContext('2d');
-    const wrap    = document.getElementById('canvas-wrap');
-    const overlay = document.getElementById('game-overlay');
-    const overlayEmoji = document.getElementById('overlay-emoji');
-    const overlayText  = document.getElementById('overlay-text');
-    const overlayHint  = document.getElementById('overlay-hint');
-    const scoreEl = document.getElementById('score-display');
-    const bestEl  = document.getElementById('best-display');
-
-    const DPR = window.devicePixelRatio || 1;
-    const H   = 160;
-    let W     = 0;
-
-    function resize() {
-        W = wrap.clientWidth;
-        canvas.width  = W * DPR;
-        canvas.height = H * DPR;
-        canvas.style.width  = W + 'px';
-        canvas.style.height = H + 'px';
-        ctx.scale(DPR, DPR);
-    }
-
-    resize();
-    window.addEventListener('resize', () => { ctx.setTransform(1,0,0,1,0,0); resize(); });
-
-    const GROUND = H - 28;
-    const GRAVITY   = 0.55;
-    const JUMP_VEL  = -12.5;
-
-    // player (little brainrot character drawn with shapes)
-    const player = {
-        x: 60, y: GROUND, w: 28, h: 32,
-        vy: 0, onGround: true,
-        frame: 0, frameTimer: 0,
-    };
-
-    let obstacles = [];
-    let particles = [];
-    let score = 0;
-    let best  = 0;
-    let speed = 4.5;
-    let obstacleTimer = 0;
-    let obstacleInterval = 90;
-    let state = 'idle'; // idle | running | dead
-    let deadTimer = 0;
-    let bgStars = [];
-
-    // Generate background stars
-    for (let i = 0; i < 40; i++) {
-        bgStars.push({
-            x: Math.random() * 800,
-            y: Math.random() * (GROUND - 20),
-            r: Math.random() * 1.3 + 0.3,
-            speed: Math.random() * 0.4 + 0.1,
-            alpha: Math.random() * 0.5 + 0.2
-        });
-    }
-
-    function jump() {
-        if (state === 'idle') { startGame(); return; }
-        if (state === 'dead') return;
-        if (player.onGround) {
-            player.vy = JUMP_VEL;
-            player.onGround = false;
-            spawnParticles(player.x + player.w/2, player.y + player.h, '#f97316', 6);
-        }
-    }
-
-    function startGame() {
-        score = 0; speed = 2.8; obstacles = []; particles = [];
-        obstacleTimer = 0; obstacleInterval = 90;
-        player.y = GROUND; player.vy = 0; player.onGround = true;
-        state = 'running';
-        overlay.classList.add('hidden');
-    }
-
-    function die() {
-        state = 'dead';
-        if (score > best) { best = score; bestEl.textContent = best; }
-        spawnParticles(player.x + player.w/2, player.y + player.h/2, '#ef4444', 14);
-        deadTimer = 90;
-        setTimeout(() => {
-            overlayEmoji.textContent = '💀';
-            overlayText.textContent  = 'Game Over — Score: ' + score;
-            overlayHint.textContent  = 'Retap pour rejouer';
-            overlay.classList.remove('hidden');
-            state = 'idle';
-        }, 900);
-    }
-
-    function spawnParticles(x, y, color, count) {
-        for (let i = 0; i < count; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const spd   = Math.random() * 4 + 1;
-            particles.push({
-                x, y,
-                vx: Math.cos(angle) * spd,
-                vy: Math.sin(angle) * spd - 2,
-                alpha: 1, life: 35 + Math.random() * 20,
-                r: Math.random() * 4 + 2,
-                color
-            });
-        }
-    }
-
-    const OBSTACLE_TYPES = [
-        { w: 18, h: 34, color: '#dc2626', emoji: '🌵' },
-        { w: 24, h: 26, color: '#7c3aed', emoji: '💀' },
-        { w: 16, h: 42, color: '#ea580c', emoji: '🔥' },
-    ];
-
-    function spawnObstacle() {
-        const t = OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)];
-        obstacles.push({
-            x: W + 20,
-            y: GROUND + player.h - t.h,
-            w: t.w, h: t.h,
-            color: t.color,
-            emoji: t.emoji
-        });
-    }
-
-    function drawPlayer() {
-        const px = player.x, py = player.y;
-        const pw = player.w, ph = player.h;
-
-        // Shadow
-        ctx.save();
-        ctx.globalAlpha = 0.25;
-        ctx.fillStyle = '#000';
-        ctx.beginPath();
-        ctx.ellipse(px + pw/2, GROUND + ph + 2, pw * 0.55, 5, 0, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
-
-        // Body
-        const grad = ctx.createLinearGradient(px, py, px, py + ph);
-        grad.addColorStop(0, '#f97316');
-        grad.addColorStop(1, '#dc2626');
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.roundRect(px, py + ph * 0.35, pw, ph * 0.65, 6);
-        ctx.fill();
-
-        // Head
-        ctx.fillStyle = '#fb923c';
-        ctx.beginPath();
-        ctx.roundRect(px + pw*0.1, py, pw * 0.8, ph * 0.5, 8);
-        ctx.fill();
-
-        // Eyes
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(px + pw*0.3, py + ph*0.18, 4.5, 0, Math.PI*2);
-        ctx.arc(px + pw*0.7, py + ph*0.18, 4.5, 0, Math.PI*2);
-        ctx.fill();
-        ctx.fillStyle = '#1a1a1a';
-        ctx.beginPath();
-        ctx.arc(px + pw*0.3 + 1, py + ph*0.18, 2.2, 0, Math.PI*2);
-        ctx.arc(px + pw*0.7 + 1, py + ph*0.18, 2.2, 0, Math.PI*2);
-        ctx.fill();
-
-        // Legs animation
-        if (state === 'running' && player.onGround) {
-            player.frameTimer++;
-            if (player.frameTimer > 8) { player.frame = (player.frame + 1) % 2; player.frameTimer = 0; }
-        }
-        const legOff = player.frame === 0 ? -4 : 4;
-        ctx.fillStyle = '#ea580c';
-        ctx.beginPath();
-        ctx.roundRect(px + pw*0.2, py + ph - 4 + legOff, 8, 10, 3);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.roundRect(px + pw*0.55, py + ph - 4 - legOff, 8, 10, 3);
-        ctx.fill();
-    }
-
-    function drawObstacle(ob) {
-        // Shadow
-        ctx.save();
-        ctx.globalAlpha = 0.2;
-        ctx.fillStyle = '#000';
-        ctx.beginPath();
-        ctx.ellipse(ob.x + ob.w/2, GROUND + player.h + 2, ob.w * 0.5, 4, 0, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
-
-        // Body
-        const g = ctx.createLinearGradient(ob.x, ob.y, ob.x, ob.y + ob.h);
-        g.addColorStop(0, ob.color + 'dd');
-        g.addColorStop(1, ob.color + '88');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.roundRect(ob.x, ob.y, ob.w, ob.h, 5);
-        ctx.fill();
-
-        // Emoji
-        ctx.font = `${Math.min(ob.w, ob.h) * 0.9}px serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(ob.emoji, ob.x + ob.w/2, ob.y + ob.h/2);
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'alphabetic';
-    }
-
-    function drawGround() {
-        // Ground line
-        ctx.strokeStyle = 'rgba(249,115,22,0.35)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(0, GROUND + player.h + 4);
-        ctx.lineTo(W, GROUND + player.h + 4);
-        ctx.stroke();
-
-        // Ground glow
-        const gg = ctx.createLinearGradient(0, GROUND + player.h + 4, 0, H);
-        gg.addColorStop(0, 'rgba(249,115,22,0.07)');
-        gg.addColorStop(1, 'rgba(249,115,22,0)');
-        ctx.fillStyle = gg;
-        ctx.fillRect(0, GROUND + player.h + 4, W, H - GROUND - player.h - 4);
-    }
-
-    function drawParticles() {
-        for (const p of particles) {
-            ctx.save();
-            ctx.globalAlpha = p.alpha;
-            ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-            ctx.fill();
-            ctx.restore();
-        }
-    }
-
-    function drawBg() {
-        // Scrolling stars
-        for (const s of bgStars) {
-            if (state === 'running') {
-                s.x -= s.speed * (speed / 2.8);
-                if (s.x < 0) s.x = W + 2;
-            }
-            ctx.save();
-            ctx.globalAlpha = s.alpha;
-            ctx.fillStyle = '#fff';
-            ctx.beginPath();
-            ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-            ctx.fill();
-            ctx.restore();
-        }
-    }
-
-    function drawScore() {
-        ctx.fillStyle = 'rgba(251,146,60,0.8)';
-        ctx.font = 'bold 13px Inter, sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText('Score ' + score, W - 12, 22);
-        ctx.textAlign = 'left';
-    }
-
-    function drawIdleHint() {
-        // Pulsing hint under character
-        const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.004);
-        ctx.save();
-        ctx.globalAlpha = pulse * 0.5;
-        ctx.fillStyle = '#f97316';
-        ctx.font = 'bold 11px Inter,sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('ESPACE / TAP', player.x + player.w/2, GROUND + player.h + 20);
-        ctx.restore();
-        ctx.textAlign = 'left';
-    }
-
-    function collides(a, b) {
-        const margin = 5;
-        return a.x + margin < b.x + b.w - margin &&
-               a.x + a.w - margin > b.x + margin &&
-               a.y + margin < b.y + b.h &&
-               a.y + a.h > b.y + margin;
-    }
-
-    let lastTime = 0;
-    function loop(ts) {
-        requestAnimationFrame(loop);
-        ctx.clearRect(0, 0, W, H);
-
-        drawBg();
-        drawGround();
-
-        if (state === 'running') {
-            // Physics
-            player.vy += GRAVITY;
-            player.y  += player.vy;
-            if (player.y >= GROUND) { player.y = GROUND; player.vy = 0; player.onGround = true; }
-
-            // Obstacles
-            obstacleTimer++;
-            if (obstacleTimer >= obstacleInterval) {
-                spawnObstacle();
-                obstacleTimer = 0;
-                obstacleInterval = Math.max(45, obstacleInterval - 1);
-            }
-
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                obstacles[i].x -= speed;
-                if (obstacles[i].x + obstacles[i].w < 0) obstacles.splice(i, 1);
-            }
-
-            // Collision
-            for (const ob of obstacles) {
-                if (collides(player, ob)) { die(); break; }
-            }
-
-            // Score
-            score++;
-            scoreEl.textContent = score;
-            speed = 2.8 + score / 700;
-        }
-
-        // Particles
-        for (let i = particles.length - 1; i >= 0; i--) {
-            const p = particles[i];
-            p.x += p.vx; p.y += p.vy;
-            p.vy += 0.18;
-            p.alpha -= 1 / p.life;
-            p.life--;
-            if (p.life <= 0) particles.splice(i, 1);
-        }
-
-        for (const ob of obstacles) drawObstacle(ob);
-        drawPlayer();
-        drawParticles();
-
-        if (state === 'running') drawScore();
-        if (state === 'idle')    drawIdleHint();
-    }
-
-    requestAnimationFrame(loop);
-
-    // Controls
-    document.addEventListener('keydown', e => {
-        if (e.code === 'Space' || e.code === 'ArrowUp') {
-            e.preventDefault();
-            jump();
-        }
-    });
-    wrap.addEventListener('click', jump);
-    wrap.addEventListener('touchstart', e => { e.preventDefault(); jump(); }, { passive: false });
-})();
-</script>
+    <script src="../assets/mobile-nav.js"></script>
+    <script src="../assets/rebirth-reveal.js"></script>
+    <script src="../assets/loading.js"></script>
+    <script src="../assets/auth-gate.js"></script>
+    <script src="../assets/notif.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
