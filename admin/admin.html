@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainrotStars — Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="background-glow">
+        <div class="glow-1"></div>
+        <div class="glow-2"></div>
+    </div>
+
+    <div class="container">
+        <header class="admin-header">
+            <div>
+                <h1 style="font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem;">
+                    <i class="fas fa-shield-halved" style="color: #f97316; margin-right: 0.5rem;"></i>
+                    Admin Dashboard
+                </h1>
+                <p style="color: var(--text-muted);">Statistiques en temps réel</p>
+            </div>
+        </header>
+
+        <main class="stats-container">
+            <div class="stat-card-large">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #f97316, #dc2626);">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Joueurs en ligne</div>
+                    <div class="stat-value" id="current-players">—</div>
+                    <div class="stat-details">
+                        <span id="players-in-queue">—</span> en queue • 
+                        <span id="active-matches">—</span> matchs actifs
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card-large">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #0ea5e9, #06b6d4);">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Peak 24h</div>
+                    <div class="stat-value" id="peak-24h">—</div>
+                    <div class="stat-details">Maximum de joueurs en 24h</div>
+                </div>
+            </div>
+
+            <div class="stat-card-large">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #a855f7, #d946ef);">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Peak All Time</div>
+                    <div class="stat-value" id="peak-all-time">—</div>
+                    <div class="stat-details">Record absolu de joueurs</div>
+                </div>
+            </div>
+        </main>
+
+        <div class="refresh-info">
+            <i class="fas fa-info-circle"></i>
+            Actualisez la page pour mettre à jour les statistiques
+            <span style="margin-left: 1rem; opacity: 0.6;">• Stats réinitialisées à chaque redémarrage du serveur</span>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

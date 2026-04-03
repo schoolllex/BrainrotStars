@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainrotStars - Infos du jeu</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="../index/style.css">
+    <link rel="stylesheet" href="credits.css">
+    <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/schoolllex/images/refs/heads/main/BrainrotStar/favicon.ico">
+</head>
+<body>
+    <div class="background-glow">
+        <div class="glow-1"></div>
+        <div class="glow-2"></div>
+    </div>
+
+    <div class="container">
+        <header class="navbar">
+            <div class="logo">
+                <a href="../index/index.html">
+                    <img src="https://raw.githubusercontent.com/schoolllex/images/refs/heads/main/BrainrotStar/BrainrotStar_logo_fc.png" alt="Brainrot Star" class="logo-image">
+                </a>
+            </div>
+            <button class="nav-toggle" type="button" aria-label="Ouvrir le menu" aria-expanded="false">
+                <i data-lucide="menu"></i>
+            </button>
+            <div class="nav-buttons">
+                <a href="../index/index.html" class="btn-nav nav-link">
+                    <i data-lucide="home"></i>
+                    <span>Accueil</span>
+                </a>
+                <a href="../ranking/ranking.html" class="btn-nav ranking nav-link">
+                    <i data-lucide="trophy"></i>
+                    <span>Classement</span>
+                </a>
+                <a href="../friends/friends.html" class="btn-nav friends nav-link has-badge">
+                    <i data-lucide="users"></i>
+                    <span>Amis</span>
+                    <span class="nav-badge hidden"></span>
+                </a>
+                <a href="../rebirth/rebirth.html" class="btn-nav rebirth nav-link">
+                    <i data-lucide="refresh-ccw"></i>
+                    <span>Rebirth</span>
+                </a>
+                <a href="../credits/credits.html" class="btn-nav nav-link">
+                    <i data-lucide="info"></i>
+                    <span>Infos du jeu</span>
+                </a>
+            </div>
+        </header>
+
+        <main class="credits-content">
+
+            <section class="credits-card wiki-card">
+                <div class="card-header">
+                    <i data-lucide="book-open"></i>
+                    <h2>Mini Wiki</h2>
+                </div>
+                <div class="wiki-grid">
+                    <article class="wiki-entry">
+                        <div class="wiki-entry-title">
+                            <i data-lucide="coins"></i>
+                            <span>Gagner des pièces</span>
+                        </div>
+                        <p>Tes Brainrots génèrent des pièces par seconde automatiquement. Plus ta carte est de haut niveau, plus elle rapporte. Le CPS affiché est calculé selon la formule : <strong>CPS de base × (niveau - 1) × 0,80</strong>.</p>
+                    </article>
+                    <article class="wiki-entry">
+                        <div class="wiki-entry-title">
+                            <i data-lucide="layers"></i>
+                            <span>Niveaux de carte</span>
+                        </div>
+                        <p>Chaque carte possède un niveau correspondant au nombre d'exemplaires que tu possèdes. Avoir 30 exemplaires d'une carte = carte niveau 30. Plus le niveau est élevé, plus le CPS est important.</p>
+                    </article>
+                    <article class="wiki-entry">
+                        <div class="wiki-entry-title">
+                            <i data-lucide="star"></i>
+                            <span>Raretés</span>
+                        </div>
+                        <p>Les cartes sont classées par rareté : <strong>Commun → Peu Commun → Rare → Très Rare → Légendaire → Épique → Mythique → Ultime → Divin → Secret → Ancestral → Éternel</strong>.</p>
+                    </article>
+                    <article class="wiki-entry">
+                        <div class="wiki-entry-title">
+                            <i data-lucide="swords"></i>
+                            <span>Mode Multijoueur</span>
+                        </div>
+                        <p>Affronte d'autres joueurs en temps réel dans un mode stratégique inspiré de Clash Royale ! Déploie tes cartes Brainrot de Saison pour détruire les tours de ton adversaire et dominer l'arène.</p>
+                    </article>
+                    <article class="wiki-entry">
+                        <div class="wiki-entry-title">
+                            <i data-lucide="calendar"></i>
+                            <span>Saisons & Reset</span>
+                        </div>
+                        <p>À chaque nouvelle saison, les compteurs sont remis à zéro : <strong>Rebirths, Argent (💰) et niveau du Passe de Combat sont réinitialisés</strong>. Mais pas de panique, tu conserves l'intégralité de tes Pièces Par Seconde (CPS) pour démarrer en force !</p>
+                    </article>
+                    <article class="wiki-entry">
+                        <div class="wiki-entry-title">
+                            <i data-lucide="sparkles"></i>
+                            <span>Cartes de Saison</span>
+                        </div>
+                        <p>Ces cartes exclusives sont dédiées au mode multijoueur. Attention : elles sont liées à la saison en cours et sont <strong>intégralement réinitialisées</strong> à la fin de celle-ci pour garantir un classement équitable.</p>
+                    </article>
+                    <article class="wiki-entry">
+                        <div class="wiki-entry-title">
+                            <i data-lucide="box"></i>
+                            <span>Coffres de Saison</span>
+                        </div>
+                        <p>Obtenables uniquement pendant la saison en cours, ces coffres spéciaux contiennent tes Cartes de Saison. C'est le seul moyen de te constituer un deck multijoueur dévastateur !</p>
+                    </article>
+                    <article class="wiki-entry">
+                        <div class="wiki-entry-title">
+                            <i data-lucide="package"></i>
+                            <span>Coffres Classiques</span>
+                        </div>
+                        <p>Les coffres s'obtiennent via le Passe de combat ou la Boutique. Chaque coffre contient des cartes aléatoires. La rareté du coffre détermine la qualité des cartes obtenues à l'ouverture.</p>
+                    </article>
+                    <article class="wiki-entry">
+                        <div class="wiki-entry-title">
+                            <i data-lucide="refresh-ccw"></i>
+                            <span>Rebirth</span>
+                        </div>
+                        <p>Le Rebirth te permet de repartir de zéro en échange de bonus permanents. C'est une mécanique avancée — assure-toi d'avoir bien progressé avant de l'utiliser.</p>
+                    </article>
+                    <article class="wiki-entry">
+                        <div class="wiki-entry-title">
+                            <i data-lucide="ticket"></i>
+                            <span>Passe de combat</span>
+                        </div>
+                        <p>Le Passe de combat coûte <strong>100 000 💰</strong> et débloque 76 récompenses réparties sur 100 niveaux. Les récompenses ne sont pas automatiques — tu dois les réclamer manuellement.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="credits-card patchnote-card">
+                <div class="card-header">
+                    <i data-lucide="scroll-text"></i>
+                    <h2>Patchnote</h2>
+                    <span class="version-badge">V2.0.0</span>
+                    <span class="version-date">04/04/2026</span>
+                </div>
+
+                <div class="patchnote-content">
+                    <div class="patchnote-section">
+                        <div class="patchnote-section-header">
+                            <i data-lucide="plus-circle"></i>
+                            <h3>✨ Nouveautés</h3>
+                        </div>
+                        <ul class="patchnote-list">
+                            <li><span class="new-badge">NOUVEAU</span> Mode multijoueur en temps réel — Affronte d'autres joueurs dans des parties stratégiques</li>
+                            <li><span class="new-badge">NOUVEAU</span> 40 nouveaux Brainrot saisonniers exclusifs pour le mode multijoueur</li>
+                            <li><span class="new-badge">NOUVEAU</span> Coffre de Saison disponible pour obtenir des cartes de saison</li>
+                            <li><span class="new-badge">NOUVEAU</span> Système d'événements communautaires en temps réel</li>
+                            <li><span class="new-badge">NOUVEAU</span> Bouton de déconnexion accessible depuis "Mon compte"</li>
+                            <li><span class="new-badge">NOUVEAU</span> Classement des parties gagnées dans la page de ranking</li>
+                        </ul>
+                    </div>
+
+                    <div class="patchnote-section">
+                        <div class="patchnote-section-header">
+                            <i data-lucide="zap"></i>
+                            <h3>⚡ Améliorations</h3>
+                        </div>
+                        <ul class="patchnote-list">
+                            <li><span class="improve-badge">AMÉLIORATION</span> Développement de systèmes internes pour une meilleure gestion du jeu</li>
+                            <li><span class="improve-badge">AMÉLIORATION</span> Optimisation des performances du serveur</li>
+                            <li><span class="improve-badge">AMÉLIORATION</span> Amélioration de l'interface utilisateur pour le système de compte</li>
+                        </ul>
+                    </div>
+
+                    <div class="patchnote-section">
+                        <div class="patchnote-section-header">
+                            <i data-lucide="wrench"></i>
+                            <h3>🐛 Corrections de bugs</h3>
+                        </div>
+                        <ul class="patchnote-list">
+                            <li><span class="fix-badge">FIX</span> Correction de nombreux bugs de synchronisation des données</li>
+                            <li><span class="fix-badge">FIX</span> Résolution de problèmes d'affichage sur mobile</li>
+                            <li><span class="fix-badge">FIX</span> Correction des erreurs de calcul du CPS</li>
+                            <li><span class="fix-badge">FIX</span> Stabilisation générale du jeu et correction de bugs mineurs</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section class="credits-card">
+                <div class="card-header">
+                    <i data-lucide="code-2"></i>
+                    <h2>Crédits</h2>
+                </div>
+                <div class="credits-list">
+                    <article class="credit-row">
+                        <h2>Developer Backend : LLEX</h2>
+                        <a href="https://github.com/llextv/" target="_blank" rel="noopener noreferrer">https://github.com/llextv/</a>
+                    </article>
+                    <article class="credit-row">
+                        <h2>Developer Frontend : GLOXIOU</h2>
+                        <a href="https://github.com/GLOXIOU" target="_blank" rel="noopener noreferrer">https://github.com/GLOXIOU</a>
+                    </article>
+                    <article class="credit-row">
+                        <h2>Idée originale : Brainrot Gamble</h2>
+                        <a href="https://brainrotgamble-creator.github.io/GameBrairotGamble/" target="_blank" rel="noopener noreferrer">https://brainrotgamble-creator.github.io/GameBrairotGamble/</a>
+                    </article>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div id="global-loader" class="global-loader hidden" aria-hidden="true">
+        <div class="global-loader-spinner"></div>
+    </div>
+
+    <script src="../assets/mobile-nav.js"></script>
+    <script src="../assets/rebirth-reveal.js"></script>
+    <script src="../assets/loading.js"></script>
+    <script src="../assets/auth-gate.js"></script>
+    <script src="../assets/notif.js"></script>
+    <script src="../assets/game-notif.js"></script>
+    <script src="credits.js"></script>
+    <script>
+      lucide.createIcons();
+    </script>
+</body>
+</html>
