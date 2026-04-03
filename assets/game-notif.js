@@ -235,7 +235,7 @@
       acceptBtn.disabled = true;
       acceptBtn.textContent = 'Connexion…';
       localStorage.removeItem('playerId');
-      window.location.href = `../../frontend/game/game.html?room=${encodeURIComponent(code)}`;
+      window.location.href = `https://schoolllex.github.io/BrainrotStars/game/game.html?room=${encodeURIComponent(code)}`;
       cleanup();
     });
 
