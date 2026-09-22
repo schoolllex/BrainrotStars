@@ -153,6 +153,24 @@
         }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
+        /* hype badge */
+        .hype-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, rgba(249,115,22,0.25), rgba(220,38,38,0.18));
+            border: 1px solid rgba(249,115,22,0.6);
+            border-radius: 999px;
+            padding: 0.45rem 1.1rem;
+            font-size: 0.8rem;
+            font-weight: 900;
+            color: #fed7aa;
+            box-shadow: 0 6px 18px rgba(249,115,22,0.25);
+            margin-bottom: 0.9rem;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
         /* ETA bar */
         .eta-strip {
             display: flex;
@@ -334,6 +352,7 @@
     <!-- Main message -->
     <div class="main-card">
         <span class="maintenance-icon">⚙️</span>
+        <div class="hype-badge">🔥 La plus grosse update de l'histoire du jeu</div>
         <div class="version-badge">
             <div class="version-dot"></div>
             Mise à jour V3 en cours
@@ -341,11 +360,36 @@
         <h1 class="main-title">BrainrotStars revient très bientôt !</h1>
         <p class="main-sub">
             On est en train de tout préparer pour toi 🔧<br>
-            La <strong>V3.0.0</strong> arrive avec plein de nouveautés, accroche-toi ! (Big Update !! Rdv Semaine du 21/09)
+            La <strong>V3.0.0</strong> est notre plus grosse update à ce jour, avec une tonne de nouvelles fonctionnalités. Accroche-toi ! (Big Update !! Rdv Semaine du 21/09)
         </p>
         <div class="eta-strip">
             <span class="eta-icon">⏱️</span>
             Maintenance en cours — retour imminent (Rdv Semaine du 21/09)
+        </div>
+    </div>
+
+    <!-- What's new teaser -->
+    <div class="whats-new-card">
+        <div class="whats-new-title">🚀 Ce qui arrive avec la V3.0.0</div>
+        <div class="new-item">
+            <span class="new-item-badge badge-new">NEW</span>
+            Une tonne de nouvelles fonctionnalités inédites, jamais vues sur BrainrotStars
+        </div>
+        <div class="new-item">
+            <span class="new-item-badge badge-up">UP</span>
+            Interface et expérience de jeu entièrement repensées
+        </div>
+        <div class="new-item">
+            <span class="new-item-badge badge-new">NEW</span>
+            Du contenu exclusif et des surprises pour tous les joueurs
+        </div>
+        <div class="new-item">
+            <span class="new-item-badge badge-fix">FIX</span>
+            Optimisations et corrections pour une expérience plus fluide
+        </div>
+        <div class="new-item">
+            <span class="new-item-badge badge-up">UP</span>
+            Et encore beaucoup d'autres surprises à découvrir au lancement !
         </div>
     </div>
 
