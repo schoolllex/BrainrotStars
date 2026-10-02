@@ -68,7 +68,8 @@ function leaderboardTypeFromSort(mode) {
     if (mode === "money") return "gold";
     if (mode === "rebirth") return "rebirth";
     if (mode === "win") return "win";
-    return "coinPerSec";
+    if (mode === "cps") return "coinPerSec";
+    return "rank";
 }
 
 let leaderboard = [];
@@ -82,11 +83,11 @@ function sortedLeaderboard(mode) {
     } else if (mode === "money") {
         copy.sort((a, b) => b.money - a.money);
     } else if (mode === "rebirth") {
-        copy.sort((a, b) => b.rebirth - a.rebirth);
+        copy.sort((a, b) => b.rebirth - a.rebirth || b.cps - a.cps || b.money - a.money);
     } else if (mode === "win") {
         copy.sort((a, b) => b.win - a.win);
     } else {
-        copy.sort((a, b) => b.cps - a.cps || b.money - a.money || a.name.localeCompare(b.name, "fr"));
+        copy.sort((a, b) => b.rebirth - a.rebirth || b.cps - a.cps || b.money - a.money || a.name.localeCompare(b.name, "fr"));
     }
     return copy.slice(0, 50);
 }
@@ -143,7 +144,20 @@ async function loadLeaderboard() {
     }
     const mode = sortBy.value || "rank";
     const type = leaderboardTypeFromSort(mode);
-    leaderboard = await fetchLeaderboard(type, token);
+    try {
+        leaderboard = await fetchLeaderboard(type, token);
+    } catch (error) {
+        if (type !== "rank") throw error;
+        // Backend sans le type "rank" : on fusionne le top rebirths et le top
+        // pieces/sec, puis sortedLeaderboard() refait l'ordre rebirths d'abord.
+        const [byRebirth, byCps] = await Promise.all([
+            fetchLeaderboard("rebirth", token),
+            fetchLeaderboard("coinPerSec", token)
+        ]);
+        const byName = new Map();
+        for (const player of [...byRebirth, ...byCps]) byName.set(player.name, player);
+        leaderboard = [...byName.values()];
+    }
     render();
 }
 
