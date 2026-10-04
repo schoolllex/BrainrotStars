@@ -12,6 +12,10 @@
  *   BrainrotRealtime.on(evt, fn)  evenement pousse par le serveur.
  *   BrainrotRealtime.socket()     la socket elle-meme (combat).
  *
+ * La socket annonce aussi la page ouverte et, a chaque changement, si le
+ * joueur est la (onglet visible, une interaction depuis moins de 2 min) :
+ * le serveur en tire le temps de jeu et les pages vues du panneau admin.
+ *
  * Si la socket reste injoignable quelques secondes, les requetes repartent en
  * HTTP classique : le jeu continue de fonctionner, simplement plus cher.
  */
@@ -25,6 +29,15 @@
     const REQUEST_TIMEOUT_MS = 25000;
     const TOKEN_KEYS = ["brainrot_token", "token", "auth_token", "jwt_token", "jwt"];
     const NULL_BODY_STATUS = new Set([204, 205, 304]);
+    /** Sans interaction pendant ce delai, le joueur ne compte plus comme actif. */
+    const IDLE_AFTER_MS = 120000;
+    const PRESENCE_CHECK_MS = 15000;
+
+    /** Page du jeu : "shop" pour .../shop/shop.html. */
+    const PAGE = (() => {
+        const file = location.pathname.split("/").filter(Boolean).pop() || "index";
+        return file.replace(/\.html?$/i, "").toLowerCase().replace(/[^a-z]/g, "").slice(0, 16) || "index";
+    })();
 
     const nativeFetch = window.fetch.bind(window);
 
@@ -32,6 +45,12 @@
     /** Debut de la coupure en cours (null : connecte). */
     let downSince = Date.now();
     const waiters = new Set();
+
+    let connectedOnce = false;
+    let lastActivityAt = Date.now();
+    /** Etat d'activite deja annonce au serveur (null : rien d'annonce). */
+    let reportedActive = null;
+    let handshakeActive = true;
 
     function currentToken() {
         try {
@@ -56,8 +75,12 @@
         downSince = Date.now();
         socket = window.io(WS_URL, {
             path: "/socket.io",
-            // Relu a chaque reconnexion : le jeton a pu etre remplace.
-            auth: (cb) => cb({ token: currentToken() }),
+            // Relu a chaque reconnexion : le jeton a pu etre remplace. Une
+            // reconnexion ne compte pas une nouvelle vue de la page.
+            auth: (cb) => {
+                handshakeActive = isActive();
+                cb({ token: currentToken(), page: PAGE, fresh: connectedOnce ? 0 : 1, a: handshakeActive ? 1 : 0 });
+            },
             transports: ["websocket", "polling"],
             // WebSocket d'abord ; le polling (une requete par message) n'est
             // qu'un repli pour les reseaux qui coupent les WebSockets.
@@ -71,6 +94,9 @@
 
         socket.on("connect", () => {
             downSince = null;
+            connectedOnce = true;
+            reportedActive = handshakeActive;
+            reportPresence();
             for (const done of waiters) done(true);
             waiters.clear();
         });
@@ -81,6 +107,59 @@
             console.warn("[realtime] connexion impossible :", err?.message || err);
         });
         return socket;
+    }
+
+    // --- Presence (temps de jeu) -----------------------------------------------
+
+    function isActive() {
+        return document.visibilityState !== "hidden" && Date.now() - lastActivityAt < IDLE_AFTER_MS;
+    }
+
+    /** N'emet qu'aux changements d'etat : quelques trames par session. */
+    function reportPresence() {
+        if (!socket || !socket.connected) return;
+        const active = isActive();
+        if (active === reportedActive) return;
+        reportedActive = active;
+        socket.emit("pr", { a: active ? 1 : 0 });
+    }
+
+    function markActivity() {
+        lastActivityAt = Date.now();
+        if (reportedActive === false) reportPresence();
+    }
+
+    ["pointerdown", "keydown", "wheel", "touchstart"].forEach((type) => {
+        document.addEventListener(type, markActivity, { passive: true, capture: true });
+    });
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState !== "hidden") lastActivityAt = Date.now();
+        reportPresence();
+    });
+    // Seul moyen de voir le joueur devenir inactif sans interaction : un test
+    // toutes les 15 s (aucune trame tant que l'etat ne change pas).
+    setInterval(reportPresence, PRESENCE_CHECK_MS);
+
+    // Page quittee : le navigateur peut garder la socket ouverte encore un
+    // moment (cache precedent/suivant, delai du ping). On previent le serveur
+    // tout de suite, sans fermer la socket : le combat y envoie son 'leave'.
+    function onPageHide() {
+        reportedActive = false;
+        if (socket && socket.connected) socket.emit("pr", { a: 0, g: 1 });
+    }
+    // Page restauree depuis le cache : elle compte de nouveau.
+    window.addEventListener("pageshow", (event) => {
+        if (!event.persisted || !socket || !socket.connected) return;
+        lastActivityAt = Date.now();
+        reportedActive = isActive();
+        socket.emit("pr", { a: reportedActive ? 1 : 0, g: 0 });
+    });
+    // Inscrit apres les scripts de la page, pour passer apres leurs propres
+    // envois de fin de page (abandon de combat, sortie de file).
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => window.addEventListener("pagehide", onPageHide));
+    } else {
+        window.addEventListener("pagehide", onPageHide);
     }
 
     /** true des que la socket est connectee, false si la coupure dure trop. */

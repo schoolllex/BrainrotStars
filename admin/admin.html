@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>BrainrotStar - Panneau admin</title>
+    <link rel="stylesheet" href="admin.css">
+    <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/schoolllex/images/refs/heads/main/BrainrotStar/favicon.ico">
+</head>
+<body>
+    <!-- Rien n'est affiche avant la reponse du serveur : isAdmin est verifie en base. -->
+    <div id="gate" class="gate" aria-live="polite">
+        <div class="gate-spinner" aria-hidden="true"></div>
+        <p id="gate-text">Vérification des droits…</p>
+    </div>
+
+    <div id="app" class="app" hidden>
+        <header class="topbar">
+            <a href="../index/index.html" class="brand" title="Retour au jeu">
+                <img src="https://raw.githubusercontent.com/schoolllex/images/refs/heads/main/BrainrotStar/BrainrotStar_logo_fc.png" alt="BrainrotStar" class="brand-logo">
+                <span class="brand-text">
+                    <strong>Panneau admin</strong>
+                    <span id="admin-name" class="brand-sub"></span>
+                </span>
+            </a>
+            <div class="topbar-actions">
+                <span id="updated-at" class="updated-at"></span>
+                <button id="refresh-btn" class="btn" type="button">Actualiser</button>
+                <a href="../index/index.html" class="btn btn-ghost">Retour au jeu</a>
+            </div>
+        </header>
+
+        <section class="live" aria-label="En direct">
+            <div class="live-head">
+                <span class="live-dot" aria-hidden="true"></span>
+                <span>En direct</span>
+                <span id="live-uptime" class="live-uptime"></span>
+            </div>
+            <div id="live-grid" class="live-grid"></div>
+        </section>
+
+        <nav class="tabs" role="tablist" aria-label="Sections">
+            <button class="tab is-active" type="button" role="tab" data-tab="overview" aria-selected="true">Vue d'ensemble</button>
+            <button class="tab" type="button" role="tab" data-tab="activity" aria-selected="false">Activité</button>
+            <button class="tab" type="button" role="tab" data-tab="chests" aria-selected="false">Caisses</button>
+            <button class="tab" type="button" role="tab" data-tab="economy" aria-selected="false">Économie</button>
+            <button class="tab" type="button" role="tab" data-tab="modes" aria-selected="false">Modes de jeu</button>
+            <button class="tab" type="button" role="tab" data-tab="promo" aria-selected="false">Codes promo</button>
+            <button class="tab" type="button" role="tab" data-tab="players" aria-selected="false">Joueurs</button>
+            <button class="tab" type="button" role="tab" data-tab="anticheat" aria-selected="false">Anti-macro</button>
+        </nav>
+
+        <div class="filters" id="range-filter">
+            <span class="filters-label">Période</span>
+            <div class="segmented" role="radiogroup" aria-label="Période">
+                <button type="button" role="radio" data-range="7" aria-checked="false">7 jours</button>
+                <button type="button" role="radio" data-range="30" aria-checked="true" class="is-active">30 jours</button>
+                <button type="button" role="radio" data-range="90" aria-checked="false">90 jours</button>
+            </div>
+            <span id="tracking-note" class="filters-note"></span>
+        </div>
+
+        <main id="view" class="view" role="tabpanel"></main>
+    </div>
+
+    <div id="drawer" class="drawer" hidden>
+        <div class="drawer-backdrop" data-close-drawer></div>
+        <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+            <button class="drawer-close" type="button" data-close-drawer aria-label="Fermer">✕</button>
+            <div id="drawer-body"></div>
+        </aside>
+    </div>
+
+    <div id="tooltip" class="tooltip" hidden></div>
+    <div id="toast" class="toast" hidden></div>
+
+    <script src="../assets/config.js"></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
+    <script src="../assets/realtime.js"></script>
+    <script src="../assets/auth-gate.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
