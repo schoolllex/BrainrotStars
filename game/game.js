@@ -273,6 +273,8 @@ function showGameEndedOverlay(payload) {
 
 let gameSocket = null;
 let joinedRoomId = null;
+let gameRoomJoined = false;
+let gameReadyRequested = false;
 
 /**
  * La socket est celle de la page (assets/realtime.js), deja ouverte pour les
@@ -284,7 +286,10 @@ function bindGameSocket() {
   gameSocket = window.BrainrotRealtime?.socket?.() || null;
   if (!gameSocket) return null;
 
+  gameSocket.on('disconnect', () => { gameRoomJoined = false; });
+
   gameSocket.on('connect', () => {
+    gameRoomJoined = false;
     // A chaque reconnexion on rejoint la room : le serveur renvoie alors
     // un etat complet, ce qui resynchronise la partie apres une coupure.
     if (!joinedRoomId) return;
@@ -350,13 +355,20 @@ function bindGameSocket() {
 function connectGameSocket(roomId) {
   if (!bindGameSocket()) { console.error('Connexion temps reel impossible'); return; }
   joinedRoomId = roomId;
+  gameRoomJoined = false;
+  gameReadyRequested = false;
   // Deconnectee : le 'connect' a venir rejoindra la room.
   if (gameSocket.connected) gameSocket.emit('join', { roomId }, onJoinAck);
 }
 
 function onJoinAck(res) {
-  if (!res || res.ok) return;
-  console.error('Impossible de rejoindre la room :', res.error);
+  if (!res?.ok) {
+    console.error('Impossible de rejoindre la room :', res?.error);
+    return;
+  }
+  if (!joinedRoomId || !gameSocket?.connected) return;
+  gameRoomJoined = true;
+  if (gameReadyRequested) sendGameReady();
 }
 
 function showSpectatorView() {
@@ -394,6 +406,8 @@ function disconnectGameSocket() {
   if (!gameSocket || !joinedRoomId) return;
   gameSocket.emit('leave');
   joinedRoomId = null;
+  gameRoomJoined = false;
+  gameReadyRequested = false;
   Arena.reset();
 }
 
@@ -1512,12 +1526,16 @@ function showInvitationModal(joinData) {
 
 /** Declare le joueur pret aupres du serveur temps reel. */
 function markReady() {
-  if (!gameSocket) return;
-  const send = () => gameSocket.emit('ready', {}, (res) => {
+  gameReadyRequested = true;
+  sendGameReady();
+}
+
+/** Attendre l'accuse de join : les handlers asynchrones du serveur se chevauchent. */
+function sendGameReady() {
+  if (!gameSocket?.connected || !gameRoomJoined || !joinedRoomId) return;
+  gameSocket.emit('ready', {}, (res) => {
     if (res && res.ok === false) console.warn('ready refuse :', res.error);
   });
-  if (gameSocket.connected) send();
-  else gameSocket.once('connect', () => setTimeout(send, 50));
 }
 
 function handleAcceptInvitation(joinData) {
