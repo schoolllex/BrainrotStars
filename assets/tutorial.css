@@ -1,0 +1,216 @@
+/* Tutoriel des nouveaux joueurs (assets/tutorial.js) : eclairage + bulle flechee. */
+
+.tuto-root {
+    position: fixed;
+    inset: 0;
+    z-index: 13000;
+    touch-action: none;
+    animation: tuto-in 0.25s ease-out;
+    transition: opacity 0.2s ease;
+}
+
+.tuto-root.is-leaving {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tuto-root .hidden {
+    display: none !important;
+}
+
+@keyframes tuto-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Le "trou" eclaire : son ombre geante assombrit tout le reste de l'ecran.
+   Le clic reste capte par .tuto-root : rien ne se lance pendant le tour. */
+.tuto-spot {
+    position: fixed;
+    border-radius: 16px;
+    box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.78);
+    pointer-events: none;
+    transition: left 0.35s ease, top 0.35s ease, width 0.35s ease, height 0.35s ease, border-radius 0.35s ease;
+}
+
+.tuto-spot::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+    border: 2px solid rgba(249, 115, 22, 0.9);
+    animation: tuto-pulse 1.6s ease-out infinite;
+}
+
+.tuto-spot.is-center::after {
+    display: none;
+}
+
+/* L'anneau s'ecarte du meme nombre de pixels quelle que soit la taille. */
+@keyframes tuto-pulse {
+    0% { opacity: 1; inset: -3px; }
+    100% { opacity: 0; inset: -12px; }
+}
+
+.tuto-card {
+    position: fixed;
+    width: min(340px, calc(100vw - 24px));
+    padding: 1rem 1.1rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    background: #141414;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+    color: var(--text-main);
+    transition: left 0.35s ease, top 0.35s ease;
+}
+
+.tuto-root.is-scrolling .tuto-spot,
+.tuto-root.is-scrolling .tuto-card {
+    transition: none;
+}
+
+/* Petite fleche de la bulle, tournee vers l'element eclaire. */
+.tuto-arrow {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: #141414;
+    transform: translateX(-50%) rotate(45deg);
+}
+
+.tuto-arrow.is-up {
+    top: -8px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.tuto-arrow.is-down {
+    bottom: -8px;
+    border-left: none;
+    border-top: none;
+}
+
+.tuto-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.tuto-count {
+    color: var(--text-faint);
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.tuto-skip {
+    padding: 0.25rem 0;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.tuto-skip:hover {
+    color: var(--text-main);
+}
+
+.tuto-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.tuto-text {
+    margin-top: 0.35rem;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+.tuto-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.tuto-dots {
+    display: flex;
+    gap: 5px;
+}
+
+.tuto-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.18);
+    transition: width 0.2s ease, background-color 0.2s ease;
+}
+
+.tuto-dots span.active {
+    width: 16px;
+    background: var(--accent);
+}
+
+.tuto-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.tuto-btn {
+    padding: 0.55rem 0.95rem;
+    border: 1px solid var(--card-border-strong);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-soft);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 800;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.tuto-btn:hover {
+    border-color: var(--card-border-hover);
+}
+
+.tuto-next {
+    border-color: rgba(249, 115, 22, 0.55);
+    background: rgba(249, 115, 22, 0.1);
+    color: #fff;
+}
+
+.tuto-next:hover {
+    border-color: rgba(249, 115, 22, 0.7);
+    background: rgba(249, 115, 22, 0.16);
+}
+
+.tuto-btn:focus-visible,
+.tuto-skip:focus-visible {
+    outline: 2px solid var(--accent-border);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tuto-root,
+    .tuto-spot,
+    .tuto-card {
+        animation: none;
+        transition: none;
+    }
+
+    .tuto-spot::after {
+        animation: none;
+    }
+}

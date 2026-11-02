@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainrotStars - Gambling</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="../index/style.css">
+    <link rel="stylesheet" href="gamble.css">
+    <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/schoolllex/images/refs/heads/main/BrainrotStar/favicon.ico">
+</head>
+<body>
+    <div class="background-glow">
+        <div class="glow-1"></div>
+        <div class="glow-2"></div>
+    </div>
+
+    <div class="container">
+        <header class="navbar">
+            <div class="logo">
+                <a href="../index/index.html" class="nav-link">
+                    <img src="https://raw.githubusercontent.com/schoolllex/images/refs/heads/main/BrainrotStar/BrainrotStar_logo_fc.png" alt="Brainrot Star" class="logo-image">
+                </a>
+            </div>
+            <div class="nav-buttons">
+                <a href="../index/index.html" class="btn-nav nav-link">
+                    <i data-lucide="home"></i>
+                    <span>Accueil</span>
+                </a>
+                <a href="../shop/shop.html" class="btn-nav shop nav-link">
+                    <i data-lucide="store"></i>
+                    <span>Boutique</span>
+                </a>
+                <a href="../collection/collection.html" class="btn-nav collection nav-link">
+                    <i data-lucide="library"></i>
+                    <span>Collection</span>
+                </a>
+                <a href="../ranking/ranking.html" class="btn-nav ranking nav-link">
+                    <i data-lucide="trophy"></i>
+                    <span>Classement</span>
+                </a>
+                <button type="button" class="btn-nav profile nav-link">
+                    <i data-lucide="user"></i>
+                    <span>Profil</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="gb-content" id="gb-root">
+            <section class="gb-header">
+                <span class="gb-header-icon"><i data-lucide="dices"></i></span>
+                <div class="gb-header-text">
+                    <h1>Gambling</h1>
+                    <p>Mise tes brainrots, choisis ta chance et tourne la roue.</p>
+                </div>
+                <span class="gb-spins" id="gb-spins"></span>
+            </section>
+
+            <section class="gb-stage">
+                <div class="gb-wheel-wrap">
+                    <span class="gb-pointer" id="gb-pointer" aria-hidden="true"></span>
+                    <div class="gb-wheel is-empty" id="gb-wheel"></div>
+                    <div class="gb-hub" id="gb-hub">
+                        <span class="gb-hub-value" id="gb-chance">—</span>
+                        <span class="gb-hub-label" id="gb-hub-label">de chance</span>
+                    </div>
+                </div>
+
+                <div class="gb-controls">
+                    <div class="gb-block">
+                        <div class="gb-block-head">
+                            <span class="gb-label">Ta mise</span>
+                            <span class="gb-count" id="gb-stake-count">0 / 10</span>
+                            <button id="gb-clear" class="gb-link" type="button">Vider</button>
+                        </div>
+                        <div class="gb-slots" id="gb-slots"></div>
+                    </div>
+
+                    <div class="gb-block">
+                        <div class="gb-block-head">
+                            <span class="gb-label">À gagner</span>
+                        </div>
+                        <div class="gb-odds" id="gb-odds"></div>
+                    </div>
+
+                    <button id="gb-spin" class="btn-play gb-spin" type="button" disabled>
+                        <i data-lucide="dices"></i>
+                        <span id="gb-spin-label">Lancer la roue</span>
+                        <span class="shine" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="gb-section-title">Tes brainrots</h2>
+                <div class="gb-grid" id="gb-grid"></div>
+            </section>
+
+            <section id="gb-error" class="gb-empty hidden">
+                <span>Le Gambling est indisponible pour le moment.</span>
+                <button id="gb-retry" class="gb-btn" type="button">Réessayer</button>
+            </section>
+        </main>
+    </div>
+
+    <div id="gb-result" class="gb-result hidden" role="dialog" aria-modal="true" aria-labelledby="gb-result-title">
+        <div class="gb-result-stage" id="gb-result-stage">
+            <div class="gb-result-light"></div>
+            <div class="gb-result-rays"></div>
+            <div class="gb-result-cards" id="gb-result-cards"></div>
+            <div class="gb-result-particles" id="gb-result-particles"></div>
+        </div>
+        <p class="gb-result-kicker" id="gb-result-kicker"></p>
+        <h2 class="gb-result-title" id="gb-result-title"></h2>
+        <p class="gb-result-text" id="gb-result-text"></p>
+        <div class="gb-result-actions" id="gb-result-actions">
+            <button id="gb-again" class="gb-btn gb-btn-primary" type="button">Rejouer la même mise</button>
+            <button id="gb-result-close" class="gb-btn" type="button">Continuer</button>
+        </div>
+    </div>
+
+    <div id="gb-flash" class="gb-flash" aria-hidden="true"></div>
+
+    <div id="gb-toast" class="gb-toast hidden" role="status" aria-live="polite"></div>
+
+    <div id="global-loader" class="global-loader hidden" aria-hidden="true">
+        <div class="global-loader-spinner"></div>
+    </div>
+
+    <script src="../assets/config.js"></script>
+  <script src="../assets/playweb-analytics.js"></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
+    <script src="../assets/realtime.js"></script>
+
+    <script src="../assets/shared-nav.js"></script>
+    <script src="../assets/mobile-nav.js"></script>
+    <script src="../assets/loading.js"></script>
+    <script src="../assets/auth-gate.js"></script>
+    <script src="../assets/notif.js"></script>
+    <script src="../assets/game-notif.js"></script>
+    <script src="../assets/announce.js"></script>
+    <script src="../assets/tournament-banner.js"></script>
+    <script src="../collection/brainrot-data.js"></script>
+    <script src="gamble.js"></script>
+</body>
+</html>

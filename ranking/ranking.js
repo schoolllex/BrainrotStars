@@ -12,6 +12,9 @@ const LEADERBOARD_ROUTE_BASE = "/leaderboard";
 
 let userStats = null;
 
+const HTML_ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
+
 function fmtInt(value) {
     const num = Number(value || 0);
     if (num >= 1_000_000_000_000) return `${(num / 1_000_000_000_000).toFixed(2).replace(/\.00$/, "")}T`;
@@ -28,7 +31,10 @@ function normalizeLeaderboardRows(rows) {
         cps: Number(entry?.goldPerSec ?? 0),
         money: Number(entry?.gold ?? 0),
         rebirth: Number(entry?.hasRebirth ?? 0),
-        win: Number(entry?.win ?? 0)
+        win: Number(entry?.win ?? 0),
+        villageWins: Number(entry?.villageWins ?? 0),
+        achievements: Number(entry?.achievements ?? 0),
+        streak: Number(entry?.streak ?? 0)
     }));
 }
 
@@ -69,6 +75,9 @@ function leaderboardTypeFromSort(mode) {
     if (mode === "rebirth") return "rebirth";
     if (mode === "win") return "win";
     if (mode === "cps") return "coinPerSec";
+    if (mode === "villageWins") return "villageWins";
+    if (mode === "achievements") return "achievements";
+    if (mode === "streak") return "streak";
     return "rank";
 }
 
@@ -86,6 +95,12 @@ function sortedLeaderboard(mode) {
         copy.sort((a, b) => b.rebirth - a.rebirth || b.cps - a.cps || b.money - a.money);
     } else if (mode === "win") {
         copy.sort((a, b) => b.win - a.win);
+    } else if (mode === "villageWins") {
+        copy.sort((a, b) => b.villageWins - a.villageWins || b.rebirth - a.rebirth || b.cps - a.cps);
+    } else if (mode === "achievements") {
+        copy.sort((a, b) => b.achievements - a.achievements || b.rebirth - a.rebirth || b.cps - a.cps);
+    } else if (mode === "streak") {
+        copy.sort((a, b) => b.streak - a.streak || b.rebirth - a.rebirth || b.cps - a.cps);
     } else {
         copy.sort((a, b) => b.rebirth - a.rebirth || b.cps - a.cps || b.money - a.money || a.name.localeCompare(b.name, "fr"));
     }
@@ -107,11 +122,14 @@ function render() {
             return `
                 <tr>
                     <td><span class="${rankClass(rank)}">${rank}</span></td>
-                    <td>${player.name}</td>
+                    <td class="name-cell">${escapeHtml(player.name)}</td>
                     <td class="cps-cell">⚡ ${fmtInt(player.cps)} /s</td>
                     <td class="money-cell">💰 ${fmtInt(player.money)}</td>
                     <td class="rebirth-cell">🔄 ${player.rebirth}</td>
                     <td class="win-cell">🏆 ${fmtInt(player.win)}</td>
+                    <td class="village-cell">🏝️ ${fmtInt(player.villageWins)}</td>
+                    <td class="achievements-cell">🏅 ${fmtInt(player.achievements)}</td>
+                    <td class="streak-cell${player.streak > 0 ? "" : " is-dead"}">🔥 ${player.streak}</td>
                 </tr>
             `;
         })

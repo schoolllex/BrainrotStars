@@ -3,25 +3,26 @@ const App = {
     userRouteBases: ["/user"],
     goldSyncIntervalMs: 5 * 60 * 1000,
     state: {
-        brainrots: "14 420/69 000",
+        brainrotsOwned: 0,
+        brainrotsTotal: 0,
         coinsPerSec: 0,
         rebirthCount: 0,
         moneyTotal: 0,
         syncedGold: 0,
         syncedAtMs: Date.now(),
         syncInFlight: null,
-        achievements: "0 / 0",
-        playTime: "42h 15m"
+        achievementsUnlocked: 0,
+        achievementsTotal: 0
     },
 
     ui: {
         brainrotVal: document.getElementById('val-brainrots'),
+        brainrotBar: document.getElementById('bar-brainrots'),
         cpsVal: document.getElementById('val-cps'),
+        cpsBonus: document.getElementById('val-cps-bonus'),
         moneyVal: document.getElementById('val-money'),
         achievementsVal: document.getElementById('val-achievements'),
-        timeVal: document.getElementById('val-time'),
-        mainBtn: document.querySelector('.btn-main-play'),
-        achievementsBtn: document.getElementById('btn-achievements')
+        achievementsBar: document.getElementById('bar-achievements')
     },
 
     init() {
@@ -29,6 +30,7 @@ const App = {
         lucide.createIcons();
         this.render();
         this.bindEvents();
+        this.hideSeenBadges();
         this.loadStatsFlow();
         setInterval(() => {
             this.refreshSimulatedMoney();
@@ -36,6 +38,12 @@ const App = {
         setInterval(() => {
             this.syncEconomyFromServer({ forceGoldSync: true });
         }, this.goldSyncIntervalMs);
+    },
+
+    hideSeenBadges() {
+        try {
+            if (localStorage.getItem("brainrot_gamble_seen")) document.getElementById("gamble-new-badge")?.classList.add("hidden");
+        } catch {}
     },
 
     formatCompact(value) {
@@ -47,24 +55,52 @@ const App = {
         return `${Math.round(num * 100) / 100}`;
     },
 
+    percent(value, total) {
+        return total > 0 ? `${Math.min(100, (value / total) * 100)}%` : "0%";
+    },
+
     render() {
-        this.ui.brainrotVal.textContent = this.state.brainrots;
-        const bonusLabel = this.state.rebirthCount > 0 ? ` (+${this.state.rebirthCount * 10}%)` : "";
-        this.ui.cpsVal.textContent = `+${this.formatCompact(this.state.coinsPerSec)} /s${bonusLabel}`;
-        if (this.ui.moneyVal) this.ui.moneyVal.textContent = this.formatCompact(this.state.moneyTotal);
-        if (this.ui.achievementsVal) this.ui.achievementsVal.textContent = this.state.achievements;
-        if (this.ui.timeVal) this.ui.timeVal.textContent = this.state.playTime;
+        const { state, ui } = this;
+        ui.brainrotVal.textContent = `${state.brainrotsOwned} / ${state.brainrotsTotal}`;
+        ui.brainrotBar.style.width = this.percent(state.brainrotsOwned, state.brainrotsTotal);
+        ui.cpsVal.textContent = `+${this.formatCompact(state.coinsPerSec)} /s`;
+        ui.cpsBonus.textContent = `Bonus rebirth +${state.rebirthCount * 10} %`;
+        ui.cpsBonus.classList.toggle("hidden", state.rebirthCount <= 0);
+        ui.achievementsVal.textContent = `${state.achievementsUnlocked} / ${state.achievementsTotal}`;
+        ui.achievementsBar.style.width = this.percent(state.achievementsUnlocked, state.achievementsTotal);
+        this.renderMoney();
+    },
+
+    /** Seule valeur qui bouge en continu (toutes les 100 ms). */
+    renderMoney() {
+        const text = this.formatCompact(this.state.moneyTotal);
+        if (this.ui.moneyVal.textContent !== text) this.ui.moneyVal.textContent = text;
     },
 
     async loadStatsFlow() {
         try {
-            await this.loadAchievements();
+            this.loadBrainrotTotal();
             const token = await window.BrainrotAuth.waitUntilReady();
             if (!token) return;
             this.loadVillageBadge(token);
+            this.loadAchievements(token);
             await this.syncEconomyFromServer({ forceGoldSync: true });
         } finally {
             GlobalLoader.hide(true);
+        }
+    },
+
+    /** Nombre de Brainrots du jeu : la liste complete, comme la collection. */
+    async loadBrainrotTotal() {
+        try {
+            const response = await apiFetch(`${this.apiBaseUrl}/user/getAllBrainRot`);
+            if (!response.ok) return;
+            const payload = await response.json();
+            if (!Array.isArray(payload?.result)) return;
+            this.state.brainrotsTotal = payload.result.length;
+            this.render();
+        } catch {
+            // Le total reste a 0 : l'accueil fonctionne sans.
         }
     },
 
@@ -85,48 +121,47 @@ const App = {
             if (!payload?.success || !status) return;
             const defenses = status.exists ? Number(status.defenses || 0) : 0;
             const count = status.exists ? Number(status.ready || 0) + defenses : 0;
-            badge.textContent = !status.exists ? "!" : defenses > 0 ? `⚔️${count}` : String(count);
+            badge.textContent = !status.exists ? "!" : String(count);
             badge.title = defenses > 0 ? `${defenses} attaque(s) subie(s) pendant ton absence` : "";
+            badge.classList.toggle("is-alert", defenses > 0);
             badge.classList.toggle("hidden", status.exists && count === 0);
         } catch {
             // La pastille est un bonus : l'accueil fonctionne sans.
         }
     },
 
-    async loadAchievements() {
+    /**
+     * Succes : compteur "Succes X / Y", et pastille sur la carte quand des
+     * recompenses attendent. Tout vient du serveur (GET /achievements).
+     */
+    async loadAchievements(token) {
         try {
-            const response = await apiFetch(`${this.apiBaseUrl}/api/achievements`);
+            const response = await apiFetch(`${this.apiBaseUrl}/achievements`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const payload = await response.json();
+            const summary = payload?.summary;
+            if (!payload?.success || !summary) return;
 
-            const data = await response.json();
-            const achievements = Array.isArray(data?.achievements) ? data.achievements : [];
-            const unlockedKeys = [
-                "brainrot_unlocked_achievements",
-                "brainrot_achievements",
-                "achievements_unlocked",
-                "unlockedAchievements"
-            ];
-            let unlocked = new Set();
-
-            for (const key of unlockedKeys) {
-                try {
-                    const raw = localStorage.getItem(key);
-                    if (!raw) continue;
-                    const parsed = JSON.parse(raw);
-                    if (Array.isArray(parsed)) {
-                        unlocked = new Set(parsed.map(String));
-                        break;
-                    }
-                } catch {
-                    continue;
-                }
-            }
-
-            const unlockedCount = achievements.filter((achievement) => unlocked.has(String(achievement.id))).length;
-            this.state.achievements = `${unlockedCount} / ${achievements.length}`;
+            this.state.achievementsUnlocked = Number(summary.unlocked || 0);
+            this.state.achievementsTotal = Number(summary.total || 0);
             this.render();
+
+            const claimable = Number(summary.claimable || 0);
+            const badge = document.getElementById("ach-notif-badge");
+            const sub = document.getElementById("ach-card-sub");
+            if (badge) {
+                badge.textContent = String(claimable);
+                badge.classList.toggle("hidden", claimable === 0);
+            }
+            if (sub) {
+                sub.textContent = claimable > 0
+                    ? `${claimable} récompense${claimable > 1 ? "s" : ""} à récupérer`
+                    : `${summary.unlocked} / ${summary.total} débloqués`;
+            }
         } catch (error) {
-            console.error("Erreur chargement compteur de succès:", error);
+            console.error("Erreur chargement des succès :", error);
         }
     },
 
@@ -135,7 +170,8 @@ const App = {
         this.state.coinsPerSec = Math.max(0, Number(coinPerSec || 0));
         this.state.rebirthCount = Number(rebirthCount || 0);
         this.state.syncedAtMs = Date.now();
-        this.refreshSimulatedMoney();
+        this.state.moneyTotal = this.getSimulatedMoneyNow();
+        this.render();
     },
 
     getSimulatedMoneyNow() {
@@ -145,7 +181,7 @@ const App = {
 
     refreshSimulatedMoney() {
         this.state.moneyTotal = this.getSimulatedMoneyNow();
-        this.render();
+        this.renderMoney();
     },
 
     async fetchUserStats(token) {
@@ -205,7 +241,7 @@ const App = {
                 return { ok: false, unauthorized: Boolean(result?.unauthorized) };
             }
             const stats = result.payload.value;
-            this.state.brainrots = `${stats.card?.decks?.[0]?._count?.cards || 0} / 200`;
+            this.state.brainrotsOwned = Number(stats.card?.decks?.[0]?._count?.cards || 0);
             let nextGold = Number(stats.gold || 0);
             const shouldSyncGold = forceGoldSync || Date.now() - this.state.syncedAtMs >= this.goldSyncIntervalMs;
             if (shouldSyncGold) {
@@ -226,111 +262,10 @@ const App = {
     },
 
     bindEvents() {
-        if (this.ui.mainBtn) {
-            this.ui.mainBtn.addEventListener('click', async () => {
-                const originalText = this.ui.mainBtn.textContent;
-                
-                try {
-                    this.ui.mainBtn.disabled = true;
-                    this.ui.mainBtn.textContent = '🔍 Recherche en cours...';
-                    this.ui.mainBtn.style.opacity = '0.6';
-                    
-                    // Appel au serveur pour chercher un match
-                    const token = await window.BrainrotAuth.waitUntilReady();
-                    if (!token) {
-                        throw new Error('Non authentifié');
-                    }
-
-                    const response = await apiFetch(window.API_BASE_URL + '/game/matchmaking', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({ })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Erreur serveur');
-                    }
-
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        // Tu peux aussi afficher une notification
-                        console.log('Matchmaking en cours... Code:', data.matchCode);
-                    } else {
-                        throw new Error(data.message || 'Erreur');
-                    }
-                } catch (error) {
-                    console.error('Erreur matchmaking:', error);
-                    alert('❌ Erreur: ' + error.message);
-                    this.ui.mainBtn.textContent = originalText;
-                    this.ui.mainBtn.disabled = false;
-                    this.ui.mainBtn.style.opacity = '1';
-                }
-            });
-        }
-
-        if (this.ui.achievementsBtn) {
-            this.ui.achievementsBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                alert("Non disponible pour le moment");
-            });
-        }
-
-        const tokenBtn = document.getElementById('btn-token');
-        const tokenOverlay = document.getElementById('token-modal-overlay');
-        const tokenValue = document.getElementById('token-modal-value');
-        const tokenCopy = document.getElementById('token-modal-copy');
-        const tokenClose = document.getElementById('token-modal-close');
-        const tokenLogout = document.getElementById('token-modal-logout');
-        const tokenFeedback = document.getElementById('token-modal-feedback');
-        const logoutBtn = document.getElementById('logout-btn');
-        const logout = () => {
+        document.getElementById('logout-btn')?.addEventListener('click', () => {
             localStorage.clear();
             location.reload();
-        };
-
-        logoutBtn?.addEventListener('click', logout);
-
-        if (tokenBtn && tokenOverlay) {
-            tokenBtn.addEventListener('click', () => {
-                const token = window.BrainrotAuth.getToken() || 'Non disponible';
-                tokenValue.textContent = token;
-                tokenFeedback.textContent = '';
-                tokenOverlay.classList.remove('hidden');
-                document.body.style.overflow = 'hidden';
-            });
-
-            tokenClose.addEventListener('click', () => {
-                tokenOverlay.classList.add('hidden');
-                document.body.style.overflow = '';
-            });
-
-            tokenLogout.addEventListener('click', () => {
-                logout();
-            });
-
-            tokenOverlay.addEventListener('click', (e) => {
-                if (e.target === tokenOverlay) {
-                    tokenOverlay.classList.add('hidden');
-                    document.body.style.overflow = '';
-                }
-            });
-
-            tokenCopy.addEventListener('click', async () => {
-                const token = tokenValue.textContent;
-                try {
-                    await navigator.clipboard.writeText(token);
-                    tokenFeedback.textContent = '✅ Token copié !';
-                    tokenFeedback.style.color = '#86efac';
-                } catch {
-                    tokenFeedback.textContent = 'Impossible de copier automatiquement.';
-                    tokenFeedback.style.color = '#fca5a5';
-                }
-            });
-        }
+        });
 
         const discordCard = document.getElementById('discord-card');
         const discordOverlay = document.getElementById('discord-modal-overlay');
@@ -357,78 +292,6 @@ const App = {
         });
     }
 };
-
-const joinMatch = async (matchCode) => {
-  const originalBtnState = {
-    text: App.ui.mainBtn?.textContent,
-    disabled: App.ui.mainBtn?.disabled
-  };
-
-  try {
-    const token = await window.BrainrotAuth.waitUntilReady();
-    if (!token) {
-      throw new Error('Non authentifié');
-    }
-
-    if (App.ui.mainBtn) {
-      App.ui.mainBtn.disabled = true;
-      App.ui.mainBtn.textContent = '⏳ Connexion au match...';
-      App.ui.mainBtn.style.opacity = '0.5';
-    }
-
-    console.log(`Tentative de connexion au match: ${matchCode}`);
-
-    // Appel à l'API pour joindre la room
-    const response = await apiFetch(window.API_BASE_URL + '/game/join', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        roomId: matchCode,
-        name: localStorage.getItem('playerName') || 'Player',
-        playerId: localStorage.getItem('playerId') || null
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    if (data.error) {
-      throw new Error(data.error);
-    }
-
-    // Sauvegarder les infos du match
-    const playerId = data.playerId;
-    localStorage.setItem('playerId', playerId);
-    localStorage.setItem('currentMatchCode', matchCode);
-
-    console.log('✅ Connecté au match avec ID:', playerId);
-
-    setTimeout(() => {
-      window.location.href = `../game/game.html?room=${matchCode}`;
-    }, 500);
-
-  } catch (error) {
-    console.error('❌ Erreur join match:', error);
-    
-    // Restaurer le bouton
-    if (App.ui.mainBtn && originalBtnState) {
-      App.ui.mainBtn.textContent = originalBtnState.text;
-      App.ui.mainBtn.disabled = originalBtnState.disabled;
-      App.ui.mainBtn.style.opacity = '1';
-    }
-
-    alert(`❌ Impossible de joindre le match: ${error.message}`);
-    return false;
-  }
-};
-
 
 document.addEventListener('DOMContentLoaded', () => {
   App.init();

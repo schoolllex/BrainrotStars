@@ -7,6 +7,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="../index/style.css">
     <link rel="stylesheet" href="shop.css">
+    <link rel="stylesheet" href="../assets/tutorial.css">
     <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/schoolllex/images/refs/heads/main/BrainrotStar/favicon.ico">
 </head>
 <body>
@@ -104,6 +105,7 @@
                 <div class="promo-form">
                     <input id="promo-code-input" type="text" placeholder="Ex: BRAINROT2026" autocomplete="off">
                     <button id="promo-code-btn" type="button">Valider</button>
+                    <p id="promo-feedback" class="promo-feedback" role="status" aria-live="polite"></p>
                 </div>
             </section>
 
@@ -136,8 +138,49 @@
             </div>
 
             <div class="buy-modal-actions">
-                <button id="buy-modal-to-inventory" class="buy-modal-action buy-modal-action-left" type="button">Mettre en inv • 0 💰</button>
-                <button id="buy-modal-open-now" class="buy-modal-action buy-modal-action-right" type="button">Ouvrir tout de suite • 0 💰</button>
+                <button id="buy-modal-to-inventory" class="buy-modal-action buy-modal-action-left" type="button"><span class="buy-modal-action-label">Mettre en inv</span><span class="buy-modal-action-price">0&nbsp;💰</span></button>
+                <button id="buy-modal-open-now" class="buy-modal-action buy-modal-action-right" type="button"><span class="buy-modal-action-label">Ouvrir tout de suite</span><span class="buy-modal-action-price">0&nbsp;💰</span></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="promo-modal" class="buy-modal hidden" role="dialog" aria-modal="true" aria-labelledby="promo-modal-title">
+        <div class="buy-modal-overlay" data-close-promo="true"></div>
+        <div class="buy-modal-card promo-modal-card">
+            <p class="promo-eyebrow">Code validé !</p>
+            <div id="promo-stage" class="crate-stage promo-stage">
+                <div class="crate-light"></div>
+                <div class="crate-rays"></div>
+                <div id="promo-particles" class="crate-particles"></div>
+                <div id="promo-visual" class="promo-visual"></div>
+            </div>
+            <p class="promo-won">Tu as gagné</p>
+            <h3 id="promo-modal-title" class="promo-title"></h3>
+            <p id="promo-sub" class="promo-sub"></p>
+            <div class="promo-actions">
+                <button id="promo-inventory" class="buy-btn promo-secondary hidden" type="button">Mon inventaire</button>
+                <button id="promo-close" class="buy-btn" type="button">Super !</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loot-modal" class="buy-modal hidden" role="dialog" aria-modal="true" aria-labelledby="loot-modal-title">
+        <div class="buy-modal-overlay" data-close-loot-modal="true"></div>
+        <div class="buy-modal-card loot-modal-card">
+            <button id="loot-modal-close" class="buy-modal-close" type="button" aria-label="Fermer">
+                <i data-lucide="x"></i>
+            </button>
+            <div class="buy-modal-head">
+                <h3 id="loot-modal-title">Raretés disponibles</h3>
+                <p id="loot-modal-item-name" class="buy-modal-item-name"></p>
+            </div>
+            <div id="loot-modal-list"></div>
+            <div id="loot-modal-bonus" class="loot-bonus hidden">
+                <div class="loot-bonus-head">
+                    <span>Brainrot bonus</span>
+                    <strong id="loot-modal-bonus-value"></strong>
+                </div>
+                <p>Par caisse ouverte sans passer l'animation : elle peut te donner un Brainrot en plus.</p>
             </div>
         </div>
     </div>
@@ -164,8 +207,32 @@
     <div id="opening-overlay" class="opening-overlay hidden">
         <div class="opening-content">
             <div id="crate-container" class="crate-container">
-                <div class="crate-shake">📦</div>
+                <div id="crate-stage" class="crate-stage">
+                    <div id="crate-light" class="crate-light"></div>
+                    <div id="crate-rays" class="crate-rays"></div>
+                    <div id="crate-particles" class="crate-particles"></div>
+                    <button id="crate-tap" class="crate-tap" type="button" aria-label="Toucher la caisse">
+                        <span class="crate-shake">📦</span>
+                    </button>
+                    <span id="crate-qty" class="crate-qty hidden"></span>
+                </div>
+                <p class="crate-hint">Touche la caisse !</p>
+                <div id="crate-taps" class="crate-taps" aria-hidden="true"></div>
+                <p id="crate-bonus-hint" class="crate-bonus-hint hidden"></p>
             </div>
+
+            <div id="bonus-container" class="bonus-container hidden">
+                <div class="crate-stage bonus-stage">
+                    <div class="crate-light bonus-light"></div>
+                    <div class="crate-rays bonus-rays"></div>
+                    <div id="bonus-particles" class="crate-particles"></div>
+                    <div id="bonus-chest" class="bonus-chest">📦</div>
+                </div>
+                <p id="bonus-title" class="bonus-title">+1 Brainrot bonus !</p>
+                <p id="bonus-sub" class="bonus-sub"></p>
+            </div>
+
+            <div id="crate-flash" class="crate-flash"></div>
             
             <div id="reward-container" class="reward-container hidden">
                 <div class="reward-glow"></div>
@@ -194,7 +261,10 @@
                 <button id="close-opening-btn" class="buy-btn hidden" style="margin-top: 2rem; display: none;">Continuer</button>
             </div>
             
-            <button id="skip-animation-btn" class="skip-btn hidden">Passer l'animation ⏩</button>
+            <button id="skip-animation-btn" class="skip-btn hidden" type="button">
+                <span>Passer l'animation</span>
+                <i data-lucide="chevrons-right"></i>
+            </button>
         </div>
     </div>
 
@@ -209,13 +279,15 @@
 
     <script src="../assets/shared-nav.js"></script>
     <script src="../assets/mobile-nav.js"></script>
-    <script src="../assets/rebirth-reveal.js"></script>
     <script src="../assets/loading.js"></script>
     <script src="../assets/auth-gate.js"></script>
     <script src="../assets/anticheat.js"></script>
     <script src="../assets/notif.js"></script>
     <script src="../assets/game-notif.js"></script>
+    <script src="../assets/announce.js"></script>
+    <script src="../assets/tournament-banner.js"></script>
     <script src="../collection/brainrot-data.js"></script>
+    <script src="../assets/tutorial.js" data-tour="shop"></script>
     <script src="shop.js"></script>
 </body>
 </html>

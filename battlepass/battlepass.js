@@ -71,10 +71,12 @@ async function getBattlePassRewards() {
                 const type = entry?.type || null;
                 const amount = Number(entry?.amount || 1);
                 const cardName = entry?.card?.name || null;
+                const chestIcon = entry?.chest?.icon || "📦";
+                const chestName = entry?.chest?.name || "Coffre";
 
                 let reward;
                 if (type === "Chest") {
-                    reward = `📦 Coffre x${amount}`;
+                    reward = `${chestIcon} ${chestName} x${amount}`;
                 } else if (type === "Gold") {
                     reward = `💰 ${amount.toLocaleString()} pièces`;
                 } else if (type === "Card") {
@@ -83,7 +85,7 @@ async function getBattlePassRewards() {
                     reward = `${type || "Récompense"} x${amount}`;
                 }
 
-                return { id: entry?.id || null, level: Number(entry?.level || 0), type, amount, cardName, reward };
+                return { id: entry?.id || null, level: Number(entry?.level || 0), type, amount, cardName, chestIcon, reward };
             })
             .filter((entry) => entry.level > 0)
             .sort((a, b) => a.level - b.level);
@@ -204,7 +206,7 @@ async function claimReward(battlepassId, entry) {
         } else if (type === "Gold") {
             msg = `💰 Tu as reçu ${Number(amount).toLocaleString()} pièces !`;
         } else if (type === "Chest") {
-            msg = `📦 ${amount > 1 ? `${amount} coffres ont été ajoutés` : "Un coffre a été ajouté"} à ton inventaire !`;
+            msg = `${entry?.chestIcon || "📦"} ${amount > 1 ? `${amount} coffres ont été ajoutés` : "Un coffre a été ajouté"} à ton inventaire !`;
         } else {
             msg = entry?.reward || "Récompense récupérée.";
         }

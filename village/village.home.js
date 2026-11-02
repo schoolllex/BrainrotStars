@@ -151,6 +151,14 @@
                     V.toast(`⚔️ Troupes prêtes : ${parts.join(" ")}`, "success");
                     break;
                 }
+                case "brew":
+                    track("village_brew");
+                    break;
+                case "brewed": {
+                    const parts = Object.entries(e.spells).map(([type, n]) => `${V.spell(type)?.emoji || ""}×${n}`);
+                    V.toast(`⚗️ Potions prêtes : ${parts.join(" ")}`, "success");
+                    break;
+                }
                 case "research":
                     V.toast(`🧪 Recherche lancée : ${e.name} niveau ${e.level}.`, "success");
                     track("village_research");
@@ -636,6 +644,8 @@
                 return "<div>🛖 Abrite un constructeur.</div>";
             case "accampamento":
                 return `<div>⛺ ${lv.capacity} places · armée : ${S.data.army.used}/${S.data.army.capacity}</div>`;
+            case "fabbrica":
+                return `<div>⚗️ Potions : ${S.data.army.spellUsed}/${S.data.army.spellCapacity}${S.data.army.spellQueued ? ` · ${S.data.army.spellQueued} en préparation` : ""}</div>`;
             case "caserma": {
                 const unlocked = S.data.troops.filter((t) => t.unlocked).map((t) => t.emoji).join(" ");
                 return `<div>⚔️ Troupes débloquées : ${unlocked || "aucune"}</div>`;
@@ -643,7 +653,7 @@
             case "laboratorio": {
                 const r = S.data.army.researching;
                 if (!r) return "<div>🧪 Aucune recherche en cours.</div>";
-                const t = V.troop(r.type);
+                const t = V.unit(r.type);
                 const remaining = Math.max(0, (r.endsAt - now) / 1000);
                 return `<div>🧪 ${t?.emoji || ""} ${esc(t?.name || r.type)} niv. ${r.level} — ${remaining > 0 ? fmtDur(remaining) : "terminé !"}</div>
                     <div class="v-meter is-magic"><i style="width:${(100 * (1 - remaining / (r.sec || 1))).toFixed(1)}%"></i></div>`;
@@ -671,6 +681,7 @@
         }
         if (b.forge && forgeReady(b, now)) actions.push({ act: "collect", label: "📦 Récupérer", cls: "v-btn-gold" });
         if ((b.type === "caserma" || b.type === "accampamento") && b.level >= 1) actions.push({ act: "army", label: "⚔️ Armée", cls: "v-btn-army" });
+        if (b.type === "fabbrica" && b.level >= 1) actions.push({ act: "army", label: "⚗️ Potions", cls: "v-btn-magic" });
         if (b.type === "laboratorio" && b.level >= 1) actions.push({ act: "lab", label: "🧪 Recherche", cls: "v-btn-magic" });
         if (c.category === "wall" && b.level < c.maxLevel) {
             const batch = wallBatch(b.level);
@@ -892,6 +903,7 @@
             case "cassaforte": return `Protège ${Math.round((first.protect || 0) * 100)} % du butin`;
             case "capanna": return "+1 constructeur";
             case "accampamento": return `${first.capacity} places de troupes`;
+            case "fabbrica": return `${first.spellCapacity} places de potions`;
             case "caserma": return "Entraîne tes troupes";
             case "laboratorio": return "Améliore tes troupes";
             case "mura": return `❤️ ${fmt(first.hp)} · pose à la chaîne`;
@@ -985,6 +997,12 @@
             case "accampamento":
                 rows.push(["Places de troupes", String(lv.capacity)]);
                 break;
+            case "fabbrica": {
+                rows.push(["Places de potions", String(lv.spellCapacity)]);
+                const spell = (S.data.spells || []).find((sp) => sp.factory === level);
+                if (spell) rows.push(["Débloque", `${spell.emoji} ${spell.name}`]);
+                break;
+            }
             case "caserma": {
                 const troop = S.data.troops.find((t) => t.barracks === level);
                 if (troop) rows.push(["Débloque", `${troop.emoji} ${troop.name}`]);
@@ -1024,6 +1042,7 @@
     function palazzoUnlocks(nextTh) {
         const th = nextTh - 1;
         const out = [];
+        const raised = [];
         for (const c of S.data.catalog) {
             if (c.type === "palazzo") continue;
             if (c.category === "decoration") {
@@ -1038,9 +1057,10 @@
             if (before > 0 && c.maxLevel > 1) {
                 const lvBefore = maxLevelAt(c, th);
                 const lvAfter = maxLevelAt(c, nextTh);
-                if (lvAfter > lvBefore) out.push(`${c.emoji} ${c.name} jusqu'au niveau ${lvAfter}`);
+                if (lvAfter > lvBefore) raised.push(c.emoji);
             }
         }
+        if (raised.length) out.push(`⬆️ Niveau max +1 : ${raised.join(" ")}`);
         const limits = S.data.decorationLimitByTh || [];
         if ((limits[nextTh - 1] ?? 0) > (limits[th - 1] ?? 0)) out.push(`🌴 Jusqu'à ${limits[nextTh - 1]} décorations`);
         if (nextTh === S.data.war.minTh) out.push("⚔️ Ton village devient attaquable (bouclier de 24 h offert)");
@@ -1080,6 +1100,9 @@
 
         if (b.type === "caserma" || b.type === "accampamento") {
             parts.push(`<button class="v-btn v-btn-army v-sheet-cta" type="button" data-act="open-army">⚔️ Gérer mon armée</button>`);
+        }
+        if (b.type === "fabbrica" && b.level >= 1) {
+            parts.push(`<button class="v-btn v-btn-magic v-sheet-cta" type="button" data-act="open-army">⚗️ Préparer des potions</button>`);
         }
         if (b.type === "laboratorio") {
             parts.push(`<button class="v-btn v-btn-magic v-sheet-cta" type="button" data-act="open-lab">🧪 Ouvrir le Laboratorio</button>`);
@@ -1241,7 +1264,96 @@
             </div>`;
         }).join("")}</div>`);
         parts.push(`<p class="v-dim v-small">Touche une troupe pour en entraîner une. Les troupes déployées en bataille sont perdues, même si tu gagnes.</p>`);
+        parts.push(spellsHtml());
         return parts.join("");
+    }
+
+    function spellLockReason(sp) {
+        const army = S.data.army;
+        if (army.factory < 1) return "Construis une Fabbrica";
+        if (!sp.unlocked) return `🔒 Fabbrica niv. ${sp.factory}`;
+        const free = army.spellCapacity - army.spellUsed - army.spellQueued;
+        if (free < sp.space) return "Fabbrica pleine";
+        if (V.liveGold() < sp.cost) return "Pas assez d'or";
+        return null;
+    }
+
+    function spellsHtml() {
+        const d = S.data;
+        const army = d.army;
+        const spells = d.spells || [];
+        const now = V.serverNow();
+        const parts = [`<p class="v-section-title">⚗️ Potions</p>`];
+        if (army.factory < 1) {
+            parts.push(`<div class="v-note">⚗️ La <b>Fabbrica di Pozioni</b> (Palazzo niveau 5) prépare des potions à lancer en bataille : foudre, soin, furie et gel.</div>`);
+            return parts.join("");
+        }
+        const total = Math.max(1, army.spellCapacity);
+        parts.push(`<div class="v-capacity">
+            <div class="v-capacity-head"><span>⚗️ Places</span><b>${army.spellUsed}${army.spellQueued ? ` + ${army.spellQueued}` : ""} / ${army.spellCapacity}</b></div>
+            <div class="v-meter is-stack is-magic"><i style="width:${(100 * army.spellUsed / total).toFixed(1)}%"></i><em style="left:${(100 * army.spellUsed / total).toFixed(1)}%;width:${(100 * army.spellQueued / total).toFixed(1)}%"></em></div>
+        </div>`);
+        const ready = spells.filter((sp) => army.spells[sp.type] > 0);
+        if (ready.length) {
+            parts.push(`<div class="v-chips">${ready.map((sp) => `<span class="v-chip"><span aria-hidden="true">${sp.emoji}</span>×${army.spells[sp.type]}<small>niv. ${sp.level}</small></span>`).join("")}</div>`);
+        }
+        if (army.spellQueue.length) {
+            const endsIn = Math.max(0, (army.spellEndsAt - now) / 1000);
+            parts.push(`<p class="v-section-title">Préparation · finie dans ${fmtDur(endsIn)}</p>`);
+            parts.push(`<div class="v-queue">${army.spellQueue.map((e, i) => {
+                const sp = V.spell(e.type);
+                let meter = "";
+                if (i === 0 && army.spellHeadEndsAt) {
+                    const left = Math.max(0, (army.spellHeadEndsAt - now) / 1000);
+                    meter = `<div class="v-meter is-magic"><i style="width:${(100 * (1 - left / (sp?.brewSec || 1))).toFixed(1)}%"></i></div><small>${fmtDur(left)}</small>`;
+                }
+                return `<div class="v-queue-item">
+                    <span class="v-queue-emoji" aria-hidden="true">${sp?.emoji || "?"}</span>
+                    <div class="v-queue-info"><b>${esc(sp?.name || e.type)} ×${e.count}</b>${meter}</div>
+                    <button class="v-btn v-btn-icon v-btn-danger" type="button" data-act="unbrew" data-index="${i}" aria-label="Annuler une potion">−</button>
+                </div>`;
+            }).join("")}</div>`);
+        }
+        parts.push(`<div class="v-troop-grid">${spells.map((sp) => {
+            const reason = spellLockReason(sp);
+            const locked = !sp.unlocked;
+            return `<div class="v-troop is-spell${locked ? " is-locked" : ""}">
+                <button class="v-troop-main" type="button" data-act="brew" data-type="${sp.type}"${reason || S.pending > 0 ? " disabled" : ""}>
+                    <span class="v-troop-emoji" aria-hidden="true">${sp.emoji}</span>
+                    <span class="v-troop-level">niv. ${sp.level}</span>
+                    <b>${esc(sp.name)}</b>
+                    <span class="v-troop-role">${esc(spellEffect(sp, sp.levels[sp.level - 1]))}</span>
+                    <span class="v-troop-meta">⚗️ ${sp.space} · ⏱ ${fmtDur(sp.brewSec)} · <span class="v-cost">🪙 ${fmt(sp.cost)}</span></span>
+                    ${reason ? `<span class="v-card-lock">${esc(reason)}</span>` : ""}
+                </button>
+                <button class="v-troop-info" type="button" data-act="spell-info" data-type="${sp.type}" aria-label="Infos">ℹ️</button>
+            </div>`;
+        }).join("")}</div>`);
+        return parts.join("");
+    }
+
+    function spellEffect(sp, lv) {
+        if (!lv) return "";
+        switch (sp.effect) {
+            case "lightning": return `⚡ ${fmt(lv.dmg)} dégâts aux bâtiments`;
+            case "heal": return `💚 +${lv.heal} PV par seconde`;
+            case "rage": return `😡 dégâts ×${lv.boost}`;
+            case "freeze": return `🧊 défenses gelées ${(lv.freeze / 10).toFixed(1).replace(/\.0$/, "")} s`;
+            default: return "";
+        }
+    }
+
+    function spellInfoHtml(sheet) {
+        const sp = V.spell(sheet.type);
+        if (!sp) return null;
+        const lv = sp.levels[sp.level - 1];
+        const rows = [["Effet", spellEffect(sp, lv)], ["Zone", `${sp.radius} cases`]];
+        if (sp.duration) rows.push(["Durée", `${sp.duration / 10} s`]);
+        rows.push(["Places", String(sp.space)], ["Préparation", `⏱ ${fmtDur(sp.brewSec)} · 🪙 ${fmt(sp.cost)}`]);
+        return `<div class="v-detail-hero"><div class="v-dock-emoji" aria-hidden="true">${sp.emoji}</div>
+            <div><p class="v-detail-role">Potion · niveau ${sp.level}</p><p>${esc(sp.description)}</p></div></div>
+            <div class="v-rows">${rows.map(([l, v]) => `<div class="v-row"><span>${esc(l)}</span><b>${esc(v)}</b></div>`).join("")}</div>
+            <button class="v-btn v-sheet-cta" type="button" data-act="open-army">← Retour à l'armée</button>`;
     }
 
     function troopInfoHtml(sheet) {
@@ -1250,7 +1362,7 @@
         const lv = t.levels[t.level - 1];
         const target = { any: "Le bâtiment le plus proche", defense: "Les défenses", resource: "Mines, forge, banque", wall: "Les murs", heal: "Soigne les alliés" }[t.target];
         return `<div class="v-detail-hero"><div class="v-dock-emoji" aria-hidden="true">${t.emoji}</div>
-            <div><p class="v-detail-role">${t.roleEmoji} ${esc(t.role)} · niveau ${t.level}/${t.maxLevel}</p><p>${esc(t.description)}</p></div></div>
+            <div><p class="v-detail-role">${t.roleEmoji} ${esc(t.role)} · niveau ${t.level}</p><p>${esc(t.description)}</p></div></div>
             <div class="v-rows">
                 <div class="v-row"><span>Points de vie</span><b>${lv.hp}</b></div>
                 ${t.target === "heal" ? `<div class="v-row"><span>Soin</span><b>${lv.heal}</b></div>` : `<div class="v-row"><span>Dégâts par coup</span><b>${lv.dmg}</b></div>`}
@@ -1274,6 +1386,12 @@
                 await V.doAction("POST", "/village/army/cancel", { index: Number(el.dataset.index) });
             } else if (act === "troop-info") {
                 V.openSheet({ kind: "troop", type: el.dataset.type });
+            } else if (act === "brew") {
+                await V.doAction("POST", "/village/spells/brew", { type: el.dataset.type, count: 1 });
+            } else if (act === "unbrew") {
+                await V.doAction("POST", "/village/spells/cancel", { index: Number(el.dataset.index) });
+            } else if (act === "spell-info") {
+                V.openSheet({ kind: "spell", type: el.dataset.type });
             }
         }
     };
@@ -1284,6 +1402,14 @@
             return t ? `${t.emoji} ${t.name}` : "Troupe";
         },
         html: troopInfoHtml
+    };
+
+    V.sheets.spell = {
+        title(sheet) {
+            const sp = V.spell(sheet.type);
+            return sp ? `${sp.emoji} ${sp.name}` : "Potion";
+        },
+        html: spellInfoHtml
     };
 
     /* ======================================================================
@@ -1302,7 +1428,7 @@
         }
         const r = army.researching;
         if (r) {
-            const t = V.troop(r.type);
+            const t = V.unit(r.type);
             const left = Math.max(0, (r.endsAt - now) / 1000);
             parts.push(`<div class="v-research">
                 <span class="v-queue-emoji" aria-hidden="true">${t?.emoji || "🧪"}</span>
@@ -1329,7 +1455,7 @@
             return `<div class="v-lab-item${reason && reason !== "Recherche en cours" ? " is-locked" : ""}">
                 <span class="v-queue-emoji" aria-hidden="true">${t.emoji}</span>
                 <div class="v-queue-info">
-                    <b>${esc(t.name)} <small>niv. ${t.level}/${t.maxLevel}</small></b>
+                    <b>${esc(t.name)} <small>niv. ${t.level}</small></b>
                     <span class="v-dim">${stats}</span>
                 </div>
                 ${next?.research && !reason
@@ -1338,6 +1464,34 @@
                 : `<span class="v-lab-lock">${esc(reason || "")}</span>`}
             </div>`;
         }).join("")}</div>`);
+        const spells = (d.spells || []).filter((sp) => sp.unlocked);
+        if (spells.length) {
+            parts.push(`<p class="v-section-title">⚗️ Potions</p>`);
+            parts.push(`<div class="v-lab-list">${spells.map((sp) => {
+                const next = sp.levels[sp.level];
+                let reason = null;
+                if (!next) reason = "🏆 Niveau max";
+                else if (next.lab > army.lab) reason = `🔒 Labo niv. ${next.lab}`;
+                else if (r) reason = "Recherche en cours";
+                else if (army.labUpgrading) reason = "Labo en travaux";
+                const short = next?.research && V.liveGold() < next.research.cost;
+                const cur = sp.levels[sp.level - 1];
+                const stats = next
+                    ? `${esc(spellEffect(sp, cur))} → <span class="v-up">${esc(spellEffect(sp, next))}</span>`
+                    : esc(spellEffect(sp, cur));
+                return `<div class="v-lab-item${reason && reason !== "Recherche en cours" ? " is-locked" : ""}">
+                    <span class="v-queue-emoji" aria-hidden="true">${sp.emoji}</span>
+                    <div class="v-queue-info">
+                        <b>${esc(sp.name)} <small>niv. ${sp.level}</small></b>
+                        <span class="v-dim">${stats}</span>
+                    </div>
+                    ${next?.research && !reason
+                    ? `<button class="v-btn v-btn-magic" type="button" data-act="research" data-type="${sp.type}"${short || S.pending > 0 ? " disabled" : ""}>
+                            <span>🪙 ${fmt(next.research.cost)}</span><small>⏱ ${fmtDur(next.research.sec)}</small></button>`
+                    : `<span class="v-lab-lock">${esc(reason || "")}</span>`}
+                </div>`;
+            }).join("")}</div>`);
+        }
         return parts.join("");
     }
 
@@ -1359,6 +1513,8 @@
             ["⛏️", "Les mines d'or", "Un petit fixe plus une part de ta production, dans un stock limité. Récolte souvent : l'or qui dort dans les mines peut être pillé !"],
             ["⚒️", "La Fucina", "Fabrique un coffre gratuit à intervalle régulier. Les coffres arrivent dans ton inventaire, à ouvrir depuis la Boutique."],
             ["⚔️", "L'armée", "Entraîne des brainrots à la Caserma, loge-les dans les Accampamento et renforce-les au Laboratorio."],
+            ["⚗️", "Les potions", "La Fabbrica di Pozioni prépare des potions à lancer en bataille : foudre, soin, furie et gel."],
+            ["♾️", "Sans limite", "Ton Palazzo n'a plus de niveau maximum : chaque niveau débloque un niveau de plus pour tous tes bâtiments."],
             ["🗡️", "Attaquer", "Pille les mines des autres joueurs ou les Briganti, gagne des trophées et grimpe de ligue. Ton or principal, lui, ne peut jamais être volé."],
             ["🛡️", "Te défendre", "Canons, tours, mortiers, murs et pièges invisibles. Après une attaque, un bouclier te protège quelques heures."],
             ["⚖️", "Équitable pour tous", "Les prix et le butin s'adaptent à ta production : chacun joue avec le même « temps de jeu »."],

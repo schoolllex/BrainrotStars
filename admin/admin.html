@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.socket.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://raw.githubusercontent.com; connect-src 'self' https://proxy-bsstar.llexllex-proxy.workers.dev wss://proxy-bsstar.llexllex-proxy.workers.dev http://localhost:3000 ws://localhost:3000; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>BrainrotStar - Panneau admin</title>
     <link rel="stylesheet" href="admin.css">
     <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/schoolllex/images/refs/heads/main/BrainrotStar/favicon.ico">
@@ -28,6 +30,7 @@
                 <span id="updated-at" class="updated-at"></span>
                 <button id="refresh-btn" class="btn" type="button">Actualiser</button>
                 <a href="../index/index.html" class="btn btn-ghost">Retour au jeu</a>
+                <button id="logout-btn" class="btn btn-ghost" type="button">Se déconnecter</button>
             </div>
         </header>
 
@@ -47,8 +50,11 @@
             <button class="tab" type="button" role="tab" data-tab="economy" aria-selected="false">Économie</button>
             <button class="tab" type="button" role="tab" data-tab="modes" aria-selected="false">Modes de jeu</button>
             <button class="tab" type="button" role="tab" data-tab="promo" aria-selected="false">Codes promo</button>
+            <button class="tab" type="button" role="tab" data-tab="messages" aria-selected="false">Messages</button>
+            <button class="tab" type="button" role="tab" data-tab="tournaments" aria-selected="false">Tournois</button>
             <button class="tab" type="button" role="tab" data-tab="players" aria-selected="false">Joueurs</button>
             <button class="tab" type="button" role="tab" data-tab="anticheat" aria-selected="false">Anti-macro</button>
+            <button class="tab" type="button" role="tab" data-tab="security" aria-selected="false">Sécurité</button>
         </nav>
 
         <div class="filters" id="range-filter">
@@ -79,6 +85,7 @@
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
     <script src="../assets/realtime.js"></script>
     <script src="../assets/auth-gate.js"></script>
+    <script src="../assets/announce.js" data-preview-only></script>
     <script src="admin.js"></script>
 </body>
 </html>

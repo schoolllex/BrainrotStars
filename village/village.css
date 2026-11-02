@@ -605,6 +605,14 @@ a {
     border-radius: 0;
 }
 
+.v-meter.is-stack.is-magic > i {
+    background: linear-gradient(90deg, #c084fc, #a855f7);
+}
+
+.v-meter.is-stack.is-magic > em {
+    background: repeating-linear-gradient(45deg, rgba(192, 132, 252, 0.5) 0 6px, rgba(192, 132, 252, 0.25) 6px 12px);
+}
+
 .v-dock-actions {
     margin-top: 0.8rem;
     display: grid;
@@ -1155,6 +1163,16 @@ a {
     border: 1px solid rgba(56, 189, 248, 0.35);
     background: linear-gradient(180deg, rgba(56, 189, 248, 0.1), rgba(255, 255, 255, 0.02));
     overflow: hidden;
+}
+
+.v-troop.is-spell {
+    border-color: rgba(192, 132, 252, 0.35);
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.1), rgba(255, 255, 255, 0.02));
+}
+
+.v-troop.is-spell .v-troop-level,
+.v-troop.is-spell .v-troop-role {
+    color: #e9d5ff;
 }
 
 .v-troop.is-locked {
@@ -1875,6 +1893,14 @@ a {
     background: linear-gradient(180deg, rgba(250, 204, 21, 0.35), rgba(249, 115, 22, 0.28));
     transform: translateY(-4px);
     box-shadow: 0 8px 20px rgba(250, 204, 21, 0.3);
+}
+
+.v-bt-troop.is-spell:not(.is-selected) {
+    background: linear-gradient(180deg, rgba(192, 132, 252, 0.24), rgba(124, 58, 237, 0.2));
+}
+
+.v-bt-troop.is-spell small {
+    color: #e9d5ff;
 }
 
 .v-bt-troop.is-empty {

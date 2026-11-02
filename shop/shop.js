@@ -14,6 +14,12 @@ const ui = {
     buyModalItemName: document.getElementById("buy-modal-item-name"),
     buyModalToInventory: document.getElementById("buy-modal-to-inventory"),
     buyModalOpenNow: document.getElementById("buy-modal-open-now"),
+    lootModal: document.getElementById("loot-modal"),
+    lootModalClose: document.getElementById("loot-modal-close"),
+    lootModalItemName: document.getElementById("loot-modal-item-name"),
+    lootModalList: document.getElementById("loot-modal-list"),
+    lootModalBonus: document.getElementById("loot-modal-bonus"),
+    lootModalBonusValue: document.getElementById("loot-modal-bonus-value"),
     openInventoryModal: document.getElementById("open-inventory-modal"),
     openInventoryClose: document.getElementById("open-inventory-close"),
     openInventoryItemName: document.getElementById("open-inventory-item-name"),
@@ -26,6 +32,18 @@ const ui = {
     countInventory: document.getElementById("count-inventory"),
     openingOverlay: document.getElementById("opening-overlay"),
     crateContainer: document.getElementById("crate-container"),
+    crateStage: document.getElementById("crate-stage"),
+    crateTap: document.getElementById("crate-tap"),
+    crateParticles: document.getElementById("crate-particles"),
+    crateQty: document.getElementById("crate-qty"),
+    crateTaps: document.getElementById("crate-taps"),
+    crateBonusHint: document.getElementById("crate-bonus-hint"),
+    crateFlash: document.getElementById("crate-flash"),
+    bonusContainer: document.getElementById("bonus-container"),
+    bonusChest: document.getElementById("bonus-chest"),
+    bonusParticles: document.getElementById("bonus-particles"),
+    bonusTitle: document.getElementById("bonus-title"),
+    bonusSub: document.getElementById("bonus-sub"),
     rewardContainer: document.getElementById("reward-container"),
     rewardImage: document.getElementById("reward-image"),
     rewardEmoji: document.getElementById("reward-emoji"),
@@ -41,6 +59,15 @@ const ui = {
     closeOpeningBtn: document.getElementById("close-opening-btn"),
     skipAnimBtn: document.getElementById("skip-animation-btn"),
     promoCodeInput: document.getElementById("promo-code-input"),
+    promoFeedback: document.getElementById("promo-feedback"),
+    promoModal: document.getElementById("promo-modal"),
+    promoStage: document.getElementById("promo-stage"),
+    promoParticles: document.getElementById("promo-particles"),
+    promoVisual: document.getElementById("promo-visual"),
+    promoTitle: document.getElementById("promo-modal-title"),
+    promoSub: document.getElementById("promo-sub"),
+    promoInventory: document.getElementById("promo-inventory"),
+    promoClose: document.getElementById("promo-close"),
     promoCodeBtn: document.getElementById("promo-code-btn")
 };
 
@@ -57,7 +84,9 @@ let inventoryOpenState = {
 };
 
 let animationState = {
-    skipping: false
+    skipping: false,
+    /** Etape en cours a interrompre quand le joueur passe l'animation. */
+    onSkip: null
 };
 
 let purchaseBlockedUntil = 0;
@@ -111,14 +140,18 @@ function getSimulatedGoldNow() {
 }
 
 function renderWalletFromEconomy() {
-    ui.wallet.textContent = `${formatCompactPrice(getSimulatedGoldNow())} 💰`;
+    ui.wallet.textContent = `${formatCompactPrice(getSimulatedGoldNow())}\u00A0💰`;
 }
 
 function isUuid(value) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
 }
 
-async function tryOpenChestApiForQty(itemId, qty) {
+/**
+ * withAnimation : le joueur a touche la caisse jusqu'au bout, seul cas ou le
+ * serveur tire le Brainrot bonus.
+ */
+async function tryOpenChestApiForQty(itemId, qty, withAnimation = false) {
     if (!isUuid(itemId)) return { handled: false, opened: 0, chests: [] };
     const token = getAuthToken();
     if (!token) return { handled: false, opened: 0, chests: [] };
@@ -135,17 +168,14 @@ async function tryOpenChestApiForQty(itemId, qty) {
                 },
                 body: JSON.stringify({
                     chestId: itemId,
-                    quantity: safeQty
+                    quantity: safeQty,
+                    animation: withAnimation === true
                 })
             });
-            if (!response.ok){
-              const errorData = await response.json().catch(() => ({}));
-              return alert(errorData?.message || "Erreur lors de l'ouverture");
-            };
-            const payload = await response.json();
-            if (!payload?.success){
-              return alert(payload?.message || "Erreur lors de l'ouverture");
-            };
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || !payload?.success) {
+                return { handled: true, opened: 0, chests: [], message: payload?.message || "Erreur lors de l'ouverture" };
+            }
             const chests = Array.isArray(payload?.chests) ? payload.chests : [];
             const opened = chests.length || safeQty;
             return { handled: true, opened: Math.max(0, opened), chests };
@@ -216,87 +246,203 @@ function pickRandomItem(data, rarity) {
     return items[Math.floor(Math.random() * items.length)];
 }
 
-async function playOpeningAnimation(qty, itemName, crateEmoji = "📦", realChests = []) {
+/** Nombre de touches pour ouvrir une caisse, facon Brawl Stars. */
+const OPEN_TAPS = 3;
+
+function collectRewardItems(realChests) {
+    const items = [];
+    for (const chest of Array.isArray(realChests) ? realChests : []) {
+        for (const reward of Array.isArray(chest?.rewards) ? chest.rewards : []) {
+            if (reward.type !== "Card") continue;
+            items.push({
+                name: reward.cardName || "Mystère",
+                emoji: "🃏",
+                cps: reward.cardGoldPerSec || 0,
+                image: reward.cardLink || "",
+                rarity: reward.cardRarity || "commun",
+                bonus: reward.bonus === true
+            });
+        }
+    }
+    return items;
+}
+
+/** Lumiere de la caisse touche apres touche ; la vraie couleur arrive a l'eclat. */
+const CRATE_TAP_COLORS = ["#ffffff", "#fdba74", "#f97316"];
+
+/** Couleur de la meilleure carte obtenue (plus gros revenu). */
+function bestRarityColor(items) {
+    const best = items.reduce((a, b) => (Number(b.cps || 0) > Number(a.cps || 0) ? b : a), items[0]);
+    return RARITY_COLORS[best?.rarity] || "#ffffff";
+}
+
+function formatChance(chance) {
+    return `${(chance * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
+}
+
+/** Attend ms, ou moins si le joueur passe l'animation. */
+function waitUnlessSkipped(ms) {
+    return new Promise((resolve) => {
+        if (animationState.skipping) return resolve();
+        const timer = setTimeout(done, ms);
+        function done() {
+            clearTimeout(timer);
+            if (animationState.onSkip === done) animationState.onSkip = null;
+            resolve();
+        }
+        animationState.onSkip = done;
+    });
+}
+
+function setCratePower(stage, power, color) {
+    const light = stage.querySelector(".crate-light");
+    stage.style.setProperty("--crate-color", color);
+    light.style.opacity = String(0.15 + power * 0.75);
+    light.style.transform = `scale(${0.7 + power * 0.6})`;
+    stage.querySelector(".crate-rays").style.opacity = String(power * 0.9);
+}
+
+function burstParticles(container, color, count = 12) {
+    for (let i = 0; i < count; i++) {
+        const dot = document.createElement("span");
+        dot.className = "crate-particle";
+        dot.style.background = color;
+        container.appendChild(dot);
+        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+        const dist = 80 + Math.random() * 80;
+        dot.animate([
+            { transform: "translate(0, 0) scale(1)", opacity: 1 },
+            { transform: `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px) scale(0.2)`, opacity: 0 }
+        ], { duration: 500 + Math.random() * 250, easing: "cubic-bezier(0.2, 0.8, 0.3, 1)" }).onfinish = () => dot.remove();
+    }
+}
+
+function renderCrateTaps(done) {
+    ui.crateTaps.innerHTML = Array.from({ length: OPEN_TAPS }, (_, i) => `<span class="${i < done ? "done" : ""}"></span>`).join("");
+}
+
+function waitForCrateTaps(colors) {
+    return new Promise((resolve) => {
+        let taps = 0;
+        const done = () => {
+            ui.crateTap.removeEventListener("click", onTap);
+            if (animationState.onSkip === done) animationState.onSkip = null;
+            resolve();
+        };
+        const onTap = () => {
+            taps += 1;
+            const color = colors[taps - 1];
+            setCratePower(ui.crateStage, taps / OPEN_TAPS, color);
+            renderCrateTaps(taps);
+            ui.crateTap.animate([
+                { transform: "scale(1) rotate(0deg)" },
+                { transform: "scale(1.18, 0.82) rotate(-6deg)", offset: 0.25 },
+                { transform: "scale(0.94, 1.1) rotate(5deg)", offset: 0.55 },
+                { transform: "scale(1) rotate(0deg)" }
+            ], { duration: 360, easing: "ease-out" });
+            burstParticles(ui.crateParticles, color, 8 + taps * 4);
+            if (taps >= OPEN_TAPS) done();
+        };
+        ui.crateTap.addEventListener("click", onTap);
+        animationState.onSkip = done;
+    });
+}
+
+async function burstCrate(color) {
+    setCratePower(ui.crateStage, 1, color);
+    ui.crateFlash.style.background = color;
+    ui.crateTap.animate([
+        { transform: "scale(1)", opacity: 1 },
+        { transform: "scale(1.6)", opacity: 0 }
+    ], { duration: 320, easing: "ease-in", fill: "forwards" });
+    ui.crateFlash.animate([
+        { opacity: 0 },
+        { opacity: 0.9, offset: 0.3 },
+        { opacity: 0 }
+    ], { duration: 650, easing: "ease-out" });
+    await waitUnlessSkipped(300);
+}
+
+async function playBonusMoment(crateEmoji, count) {
+    ui.crateContainer.classList.add("hidden");
+    ui.bonusContainer.classList.remove("hidden");
+    ui.bonusChest.textContent = crateEmoji;
+    ui.bonusTitle.textContent = count > 1 ? `+${count} Brainrots bonus !` : "+1 Brainrot bonus !";
+    ui.bonusSub.textContent = count > 1
+        ? `Tes caisses t'ont donné ${count} Brainrots en plus`
+        : "Ta caisse t'a donné un Brainrot en plus";
+    setCratePower(ui.bonusContainer.querySelector(".crate-stage"), 1, "#f97316");
+    ui.bonusChest.animate([
+        { transform: "scale(0) rotate(-25deg)" },
+        { transform: "scale(1.25) rotate(8deg)", offset: 0.6 },
+        { transform: "scale(1) rotate(0deg)" }
+    ], { duration: 600, easing: "ease-out" });
+    burstParticles(ui.bonusParticles, "#fdba74", 18);
+    await waitUnlessSkipped(1700);
+    ui.bonusContainer.classList.add("hidden");
+}
+
+/**
+ * Ouverture facon Brawl Stars : le joueur touche la caisse OPEN_TAPS fois,
+ * PUIS on demande l'ouverture au serveur. Passer l'animation avant la fin
+ * ouvre quand meme les caisses, mais sans chance de Brainrot bonus.
+ * openChests(withAnimation) renvoie { opened, chests, message }.
+ */
+async function playOpeningAnimation(qty, chestItem, openChests) {
     animationState.skipping = false;
+    animationState.onSkip = null;
+    const crateEmoji = chestItem.emoji || "📦";
 
     ui.openingOverlay.classList.remove("hidden");
     void ui.openingOverlay.offsetWidth;
     ui.openingOverlay.classList.add("active");
     document.body.classList.add("no-scroll");
-    
+
     ui.crateContainer.classList.remove("hidden");
+    ui.bonusContainer.classList.add("hidden");
     ui.rewardContainer.classList.add("hidden");
     ui.singleRewardContent.classList.add("hidden");
     ui.multiRewardContent.classList.add("hidden");
     ui.skipAnimBtn.classList.remove("hidden");
-    
+
     ui.closeOpeningBtn.classList.add("hidden");
     ui.closeOpeningBtn.style.display = "none";
-    
-    const crate = ui.crateContainer.querySelector(".crate-shake");
-    crate.textContent = crateEmoji;
-    crate.classList.remove("shaking");
-    crate.style.transform = "scale(1)";
 
-    const delay = (ms) => new Promise(resolve => {
-        if (animationState.skipping) return resolve();
-        const timeout = setTimeout(resolve, ms);
-        const checkSkip = setInterval(() => {
-            if (animationState.skipping) {
-                clearTimeout(timeout);
-                clearInterval(checkSkip);
-                resolve();
-            }
-        }, 50);
-        setTimeout(() => clearInterval(checkSkip), ms);
-    });
+    ui.crateTap.getAnimations().forEach((animation) => animation.cancel());
+    ui.crateTap.querySelector(".crate-shake").textContent = crateEmoji;
+    ui.crateQty.textContent = `x${qty}`;
+    ui.crateQty.classList.toggle("hidden", qty <= 1);
+    ui.crateBonusHint.textContent = `${formatChance(chestItem.bonusChance)} de chance de Brainrot bonus par caisse si tu ne passes pas l'animation`;
+    ui.crateBonusHint.classList.toggle("hidden", !(chestItem.bonusChance > 0));
+    setCratePower(ui.crateStage, 0, CRATE_TAP_COLORS[0]);
+    renderCrateTaps(0);
 
-    if (!animationState.skipping) {
-        await delay(100);
-        crate.classList.add("shaking");
-        
-        await delay(1500);
-        
-        crate.classList.remove("shaking");
-        crate.classList.add("crate-explode");
-        
-        await delay(300);
+    await waitForCrateTaps(CRATE_TAP_COLORS);
+    const withAnimation = !animationState.skipping;
+
+    // La caisse tremble le temps que le serveur reponde.
+    ui.crateTap.classList.add("is-charging");
+    const result = { opened: 0, chests: [], ...(await openChests(withAnimation)) };
+    ui.crateTap.classList.remove("is-charging");
+
+    const items = collectRewardItems(result.chests);
+    if (!result.opened || items.length === 0) {
+        closeOpeningOverlay();
+        return { ...result, opened: 0 };
     }
 
-    const items = [];
-
-    if (realChests && realChests.length > 0) {
-        for (const chest of realChests) {
-            if (chest.rewards && Array.isArray(chest.rewards)) {
-                for (const reward of chest.rewards) {
-                    if (reward.type === "Card") {
-                        const item = {
-                            name: reward.cardName || "Mystère",
-                            emoji: "🃏",
-                            cps: reward.cardGoldPerSec || 0,
-                            image: reward.cardLink || "",
-                            rarity: reward.cardRarity || "commun"
-                        };
-                        items.push(item);
-                    }
-                }
-            }
-        }
-    }
-
-    if (items.length === 0) {
-        alert(`Erreur`);
-        return;
-    }
+    const bonusCount = items.filter((reward) => reward.bonus).length;
+    if (!animationState.skipping) await burstCrate(bestRarityColor(items));
+    if (bonusCount > 0 && !animationState.skipping) await playBonusMoment(crateEmoji, bonusCount);
 
     ui.crateContainer.classList.add("hidden");
-    crate.classList.remove("crate-explode");
+    ui.bonusContainer.classList.add("hidden");
     ui.rewardContainer.classList.remove("hidden");
 
-    if (qty === 1) {
+    if (items.length === 1) {
         const item = items[0];
         ui.singleRewardContent.classList.remove("hidden");
-        
+
         if (item.image) {
             ui.rewardImage.src = item.image;
             ui.rewardImage.classList.remove("hidden");
@@ -306,11 +452,11 @@ async function playOpeningAnimation(qty, itemName, crateEmoji = "📦", realChes
             ui.rewardEmoji.textContent = item.emoji;
             ui.rewardEmoji.classList.remove("hidden");
         }
-        
+
         ui.rewardName.textContent = item.name;
         ui.rewardCps.textContent = formatCompactPrice(item.cps || 0);
         ui.rewardRarity.textContent = item.rarity.toUpperCase();
-        
+
         const color = RARITY_COLORS[item.rarity] || "#fff";
         ui.rewardRarity.style.color = color;
         ui.rewardRarity.style.borderColor = color;
@@ -319,37 +465,40 @@ async function playOpeningAnimation(qty, itemName, crateEmoji = "📦", realChes
         ui.skipAnimBtn.classList.add("hidden");
         ui.closeOpeningBtn.classList.remove("hidden");
         ui.closeOpeningBtn.style.display = "inline-flex";
-        
+
     } else {
         ui.multiRewardContent.classList.remove("hidden");
         ui.multiGrid.innerHTML = "";
-        
-        if (qty <= 10 && !animationState.skipping) {
+
+        // Une a une jusqu'a x10 (+ bonus), sinon tout d'un coup.
+        const revealOneByOne = items.length <= 12;
+        if (revealOneByOne && !animationState.skipping) {
             if (ui.multiFooter) ui.multiFooter.classList.add("hidden");
         } else {
             if (ui.multiFooter) ui.multiFooter.classList.remove("hidden");
         }
-        
+
         let totalCps = 0;
-        
+
         items.sort((a, b) => (b.cps || 0) - (a.cps || 0));
 
         const cards = [];
         items.forEach(item => {
             totalCps += (item.cps || 0);
             const card = document.createElement("div");
-            card.className = `multi-item-card multi-card-${item.rarity}`;
-            
-            if (qty <= 10) {
+            card.className = `multi-item-card multi-card-${item.rarity}${item.bonus ? " is-bonus" : ""}`;
+
+            if (revealOneByOne) {
                 card.style.opacity = "0";
                 card.style.transform = "scale(0.5)";
             }
 
-            const imgHtml = item.image 
+            const imgHtml = item.image
                 ? `<img src="${item.image}" class="multi-item-img" alt="${item.name}">`
                 : `<div style="font-size: 3rem;">${item.emoji}</div>`;
 
             card.innerHTML = `
+                ${item.bonus ? `<span class="multi-item-bonus">Bonus</span>` : ""}
                 ${imgHtml}
                 <div class="multi-item-name" title="${item.name}">${item.name}</div>
                 <div class="multi-item-cps">⚡ ${formatCompactPrice(item.cps)}/s</div>
@@ -357,19 +506,19 @@ async function playOpeningAnimation(qty, itemName, crateEmoji = "📦", realChes
             ui.multiGrid.appendChild(card);
             cards.push(card);
         });
-        
+
         ui.multiTotalCps.textContent = formatCompactPrice(totalCps);
 
-        if (qty <= 10) {
+        if (revealOneByOne) {
             for (let i = 0; i < cards.length; i++) {
-                await delay(400);
+                await waitUnlessSkipped(400);
                 const card = cards[i];
                 card.style.transition = "all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)";
                 card.style.opacity = "1";
                 card.style.transform = "scale(1)";
             }
-            await delay(300);
-            
+            await waitUnlessSkipped(300);
+
             if (ui.multiFooter) {
                 ui.multiFooter.classList.remove("hidden");
                 ui.multiFooter.animate([
@@ -378,9 +527,10 @@ async function playOpeningAnimation(qty, itemName, crateEmoji = "📦", realChes
                 ], { duration: 500, fill: 'forwards' });
             }
         }
-        
+
         ui.skipAnimBtn.classList.add("hidden");
     }
+    return result;
 }
 
 function closeOpeningOverlay() {
@@ -441,10 +591,6 @@ async function fetchUserInventory() {
         });
     } catch (error) {
     }
-}
-
-function getItemCount(itemId) {
-    return Number(userInventory[itemId] || 0);
 }
 
 function getRandomDisplayMoney() {
@@ -594,6 +740,7 @@ function normalizeShopData(payload) {
             emoji: chest?.icon || "📦",
             prix: Number(chest?.baseCoins || 0),
             probabilites: lootsByRarity,
+            bonusChance: Number(chest?.bonusChance || 0),
             description: chest?.description || "",
             loot: chest?.loot || []
         };
@@ -625,15 +772,25 @@ function getTotalPrice(item, qty) {
     return unit * qty;
 }
 
+function setActionLabel(button, label, price) {
+    const text = document.createElement("span");
+    text.className = "buy-modal-action-label";
+    text.textContent = label;
+    const cost = document.createElement("span");
+    cost.className = "buy-modal-action-price";
+    cost.textContent = price;
+    button.replaceChildren(text, cost);
+}
+
 function updateModalActionTexts() {
     if (!modalState.item) return;
     const total = getTotalPrice(modalState.item, modalState.qty);
-    const totalText = `${formatCompactPrice(total)} 💰`;
+    const totalText = `${formatCompactPrice(total)}\u00A0💰`;
     const currentGold = getSimulatedGoldNow();
     const canAfford = currentGold >= total;
     
-    ui.buyModalToInventory.textContent = `Mettre en inv • ${totalText}`;
-    ui.buyModalOpenNow.textContent = `Ouvrir tout de suite • ${totalText}`;
+    setActionLabel(ui.buyModalToInventory, "Mettre en inv", totalText);
+    setActionLabel(ui.buyModalOpenNow, "Ouvrir tout de suite", totalText);
     
     ui.buyModalToInventory.disabled = !canAfford;
     ui.buyModalOpenNow.disabled = !canAfford;
@@ -642,7 +799,7 @@ function updateModalActionTexts() {
     
     if (!canAfford) {
         const needed = total - currentGold;
-        const tooltip = `Tu as besoin de ${formatCompactPrice(needed)} 💰 de plus`;
+        const tooltip = `Tu as besoin de ${formatCompactPrice(needed)}\u00A0💰 de plus`;
         ui.buyModalToInventory.title = tooltip;
         ui.buyModalOpenNow.title = tooltip;
     } else {
@@ -661,7 +818,7 @@ function syncQtySelectionUI() {
 
 function openBuyModal(item, category) {
     modalState = { item, category, qty: 1 };
-    ui.buyModalItemName.textContent = `${item.emoji || "📦"} ${item.nom}`;
+    ui.buyModalItemName.textContent = `${item.emoji || "📦"}\u00A0${item.nom}`;
     syncQtySelectionUI();
     ui.buyModal.classList.remove("hidden");
     document.body.classList.add("no-scroll");
@@ -706,7 +863,7 @@ function purchaseToInventory() {
     const currentGold = getSimulatedGoldNow();
     if (currentGold < total) {
         const needed = total - currentGold;
-        alert(`Tu as besoin de ${formatCompactPrice(needed)} 💰 de plus pour effectuer cet achat.`);
+        alert(`Tu as besoin de ${formatCompactPrice(needed)}\u00A0💰 de plus pour effectuer cet achat.`);
         return;
     }
 
@@ -745,7 +902,7 @@ async function purchaseOpenNow() {
     const currentGold = getSimulatedGoldNow();
     if (currentGold < total) {
         const needed = total - currentGold;
-        alert(`Tu as besoin de ${formatCompactPrice(needed)} 💰 de plus pour effectuer cet achat.`);
+        alert(`Tu as besoin de ${formatCompactPrice(needed)}\u00A0💰 de plus pour effectuer cet achat.`);
         return;
     }
 
@@ -765,17 +922,11 @@ async function purchaseOpenNow() {
     }
 
     closeBuyModal();
-    const apiOpen = await tryOpenChestApiForQty(item.id, bought);
-    const openedQty = apiOpen.handled ? apiOpen.opened : bought;
-    if (openedQty <= 0) {
-        await fetchUserInventory();
-        renderShop(currentShop);
-        alert("Achat effectué, mais ouverture indisponible pour le moment.");
-        return;
+    const result = await playOpeningAnimation(bought, item, (withAnimation) => tryOpenChestApiForQty(item.id, bought, withAnimation));
+    if (!result.opened) {
+        alert(`${result.message || "Ouverture indisponible pour le moment."}\nTes caisses t'attendent dans ton inventaire.`);
     }
 
-    playOpeningAnimation(openedQty, item.nom, item.emoji, apiOpen.chests);
-    
     await fetchUserInventory();
     renderShop(currentShop);
     await syncEconomyFromServer({ forceGoldSync: true });
@@ -785,7 +936,7 @@ function openInventoryOpenModal(item, ownedQty, cardElement) {
     const maxQty = Math.min(ownedQty, 50);
 
     inventoryOpenState = { item, ownedQty, cardElement };
-    ui.openInventoryItemName.textContent = `${item.emoji || "📦"} ${item.nom}`;
+    ui.openInventoryItemName.textContent = `${item.emoji || "📦"}\u00A0${item.nom}`;
     ui.openInventoryQty.value = "1";
     ui.openInventoryQty.max = `${maxQty}`;
     ui.openInventoryMax.textContent = `Tu possèdes ${formatCompactPrice(ownedQty)} exemplaire(s). (max 50 utilisables)`;
@@ -797,6 +948,22 @@ function openInventoryOpenModal(item, ownedQty, cardElement) {
 function closeInventoryOpenModal() {
     ui.openInventoryModal.classList.add("hidden");
     if (ui.buyModal.classList.contains("hidden")) {
+        document.body.classList.remove("no-scroll");
+    }
+}
+
+function openLootModal(item) {
+    ui.lootModalItemName.textContent = `${item.emoji || "📦"}\u00A0${item.nom}`;
+    ui.lootModalList.innerHTML = createLootDisplay(item.probabilites);
+    ui.lootModalBonusValue.textContent = formatChance(item.bonusChance);
+    ui.lootModalBonus.classList.toggle("hidden", !(item.bonusChance > 0));
+    ui.lootModal.classList.remove("hidden");
+    document.body.classList.add("no-scroll");
+}
+
+function closeLootModal() {
+    ui.lootModal.classList.add("hidden");
+    if (ui.buyModal.classList.contains("hidden") && ui.openInventoryModal.classList.contains("hidden")) {
         document.body.classList.remove("no-scroll");
     }
 }
@@ -825,12 +992,9 @@ async function confirmOpenInventoryQuantity() {
     const item = inventoryOpenState.item;
     closeInventoryOpenModal();
 
-    const apiOpen = await tryOpenChestApiForQty(item.id, qty);
-    const openedQty = apiOpen.handled ? apiOpen.opened : qty;
-    if (openedQty <= 0) return;
+    const result = await playOpeningAnimation(qty, item, (withAnimation) => tryOpenChestApiForQty(item.id, qty, withAnimation));
+    if (!result.opened) alert(result.message || "Ouverture impossible pour le moment.");
 
-    playOpeningAnimation(openedQty, item.nom, item.emoji, apiOpen.chests);
-    
     await fetchUserInventory();
     renderShop(currentShop);
 }
@@ -865,18 +1029,19 @@ function createBuyCard(item, category) {
     const card = document.createElement("article");
     card.className = "shop-card";
 
-    const count = getItemCount(item.id);
-    const lootDisplay = createLootDisplay(item.probabilites);
-
     card.innerHTML = `
         <div class="shop-card-head">
-            <div class="shop-card-name">${item.emoji || "📦"} ${item.nom}</div>
-            <div class="shop-card-price">${formatCompactPrice(item.prix)} 💰</div>
+            <div class="shop-card-name">${item.emoji || "📦"}\u00A0${item.nom}</div>
+            <div class="shop-card-price">${formatCompactPrice(item.prix)}\u00A0💰</div>
         </div>
-        <div class="shop-card-details">Possédé: <strong>${count}</strong></div>
-        ${lootDisplay}
-        <button class="buy-btn">Acheter</button>
+        <button class="loot-toggle" type="button">
+            <span>Voir les raretés</span>
+            <i data-lucide="chevron-right"></i>
+        </button>
+        <button class="buy-btn" type="button">Acheter</button>
     `;
+
+    card.querySelector(".loot-toggle").addEventListener("click", () => openLootModal(item));
 
     const buyBtn = card.querySelector(".buy-btn");
     
@@ -886,7 +1051,7 @@ function createBuyCard(item, category) {
         buyBtn.disabled = !canAfford;
         buyBtn.classList.toggle("disabled", !canAfford);
         if (!canAfford) {
-            buyBtn.title = `Tu as besoin de ${formatCompactPrice(item.prix - currentGold)} 💰 de plus`;
+            buyBtn.title = `Tu as besoin de ${formatCompactPrice(item.prix - currentGold)}\u00A0💰 de plus`;
         } else {
             buyBtn.title = "";
         }
@@ -949,10 +1114,10 @@ function renderInventory(data) {
         card.className = "shop-card inventory-card";
         card.innerHTML = `
             <div class="shop-card-head">
-                <div class="shop-card-name">${item.emoji || "📦"} ${item.nom}</div>
+                <div class="shop-card-name">${item.emoji || "📦"}\u00A0${item.nom}</div>
                 <div class="shop-card-price">x${formatCompactPrice(qty)}</div>
             </div>
-            <div class="shop-card-details">Prix unitaire: ${formatCompactPrice(item.prix)} 💰</div>
+            <div class="shop-card-details">Prix unitaire: ${formatCompactPrice(item.prix)}\u00A0💰</div>
             <button class="inventory-open-btn" type="button">Ouvrir une quantité personnalisée</button>
         `;
         const openBtn = card.querySelector(".inventory-open-btn");
@@ -996,8 +1161,8 @@ function renderShop(data) {
                 </div>
             </div>
             <div class="shop-card-head">
-                <div class="shop-card-name">📦 Caisse Boost</div>
-                <div class="shop-card-price">??? 💰</div>
+                <div class="shop-card-name">⚡ Caisse Boost</div>
+                <div class="shop-card-price">???\u00A0💰</div>
             </div>
             <div class="shop-card-details">Bientôt disponible</div>
             <div class="shop-card-details">Restez connectés !</div>
@@ -1039,9 +1204,137 @@ async function loadShop() {
     }
 }
 
+// --- Code promo : modal du gain ---------------------------------------------------
+
+/** Erreur sous le champ (le champ tremble), a la place d'une alerte. */
+function showPromoFeedback(message) {
+    ui.promoFeedback.textContent = message;
+    ui.promoCodeInput?.animate([
+        { transform: "translateX(0)" },
+        { transform: "translateX(-6px)" },
+        { transform: "translateX(6px)" },
+        { transform: "translateX(-3px)" },
+        { transform: "translateX(0)" }
+    ], { duration: 320, easing: "ease-out" });
+}
+
+/** Le montant d'or defile jusqu'a sa valeur. */
+function countUpGold(el, amount) {
+    const start = performance.now();
+    const step = (now) => {
+        const t = Math.min(1, (now - start) / 700);
+        el.textContent = `+${formatCompactPrice(amount * (1 - Math.pow(1 - t, 3)))} pièces`;
+        if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+}
+
+function showPromoReward(result) {
+    const visual = ui.promoVisual;
+    const times = Number(result?.quantity) > 1 ? `${Number(result.quantity)} × ` : "";
+    visual.replaceChildren();
+    ui.promoInventory.classList.add("hidden");
+    let color = "#f97316";
+
+    if (result?.type === "Gold") {
+        const amount = Number(result.amount || 0);
+        color = "#facc15";
+        visual.textContent = "💰";
+        countUpGold(ui.promoTitle, amount);
+        ui.promoSub.textContent = "Ajoutées à ton argent.";
+    } else if (result?.type === "Card") {
+        color = RARITY_COLORS[result.rarity] || color;
+        if (result.link) {
+            const img = document.createElement("img");
+            img.className = "promo-card-img";
+            img.src = result.link;
+            img.alt = result.name || "Brainrot";
+            visual.appendChild(img);
+        } else {
+            visual.textContent = "🃏";
+        }
+        ui.promoTitle.textContent = times + (result.name || "Un nouveau Brainrot");
+        const parts = [];
+        if (result.rarity) parts.push(String(result.rarity).toUpperCase());
+        if (result.goldPerSec) parts.push(`⚡ ${formatCompactPrice(result.goldPerSec)}/s`);
+        ui.promoSub.textContent = parts.length ? parts.join(" · ") : "Ajouté à ta collection.";
+        ui.promoSub.style.color = result.rarity ? color : "";
+    } else if (result?.type === "Chest") {
+        const known = buildShopItemMap(currentShop).get(result.id);
+        visual.textContent = result.icon || known?.emoji || "📦";
+        ui.promoTitle.textContent = times + (result.name || known?.nom || "Une caisse");
+        ui.promoSub.textContent = times ? "Ajoutées à ton inventaire." : "Ajoutée à ton inventaire.";
+        ui.promoInventory.classList.remove("hidden");
+    } else {
+        visual.textContent = "🎁";
+        ui.promoTitle.textContent = "Une récompense";
+        ui.promoSub.textContent = "";
+    }
+    if (result?.type !== "Card") ui.promoSub.style.color = "";
+
+    ui.promoModal.classList.remove("hidden");
+    document.body.classList.add("no-scroll");
+    setCratePower(ui.promoStage, 1, color);
+    ui.promoModal.querySelector(".promo-modal-card").animate([
+        { transform: "scale(0.85)", opacity: 0 },
+        { transform: "scale(1.03)", opacity: 1, offset: 0.7 },
+        { transform: "scale(1)", opacity: 1 }
+    ], { duration: 380, easing: "ease-out" });
+    visual.animate([
+        { transform: "scale(0) rotate(-20deg)" },
+        { transform: "scale(1.2) rotate(6deg)", offset: 0.6 },
+        { transform: "scale(1) rotate(0deg)" }
+    ], { duration: 600, delay: 120, easing: "ease-out", fill: "backwards" });
+    setTimeout(() => burstParticles(ui.promoParticles, color, 18), 250);
+    ui.promoClose.focus({ preventScroll: true });
+}
+
+function closePromoModal() {
+    if (ui.promoModal.classList.contains("hidden")) return;
+    ui.promoModal.classList.add("hidden");
+    document.body.classList.remove("no-scroll");
+}
+
+async function redeemPromoCode() {
+    const code = ui.promoCodeInput?.value?.trim();
+    if (!code) {
+        showPromoFeedback("Entre un code.");
+        return;
+    }
+    const token = getAuthToken();
+    if (!token) {
+        showPromoFeedback("Erreur d'authentification, recharge la page.");
+        return;
+    }
+
+    ui.promoCodeBtn.disabled = true;
+    ui.promoFeedback.textContent = "";
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/code/${encodeURIComponent(code)}`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+            showPromoFeedback(data.message || "Code invalide ou déjà utilisé.");
+            return;
+        }
+
+        if (ui.promoCodeInput) ui.promoCodeInput.value = "";
+        showPromoReward(data.result?.result);
+        await syncEconomyFromServer({ forceGoldSync: true });
+        loadShop();
+    } catch (error) {
+        console.error("Erreur validation code:", error);
+        showPromoFeedback("Impossible de valider le code pour le moment.");
+    } finally {
+        ui.promoCodeBtn.disabled = false;
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     lucide.createIcons();
-    ui.wallet.textContent = `${formatCompactPrice(getRandomDisplayMoney())} 💰`;
+    ui.wallet.textContent = `${formatCompactPrice(getRandomDisplayMoney())}\u00A0💰`;
     setInterval(() => {
         renderWalletFromEconomy();
     }, 100);
@@ -1055,8 +1348,23 @@ document.addEventListener("DOMContentLoaded", () => {
             closeBuyModal();
         }
     });
+    ui.lootModalClose.addEventListener("click", closeLootModal);
+    ui.lootModal.addEventListener("click", (event) => {
+        const target = event.target;
+        if (target instanceof HTMLElement && target.dataset.closeLootModal === "true") {
+            closeLootModal();
+        }
+    });
     document.addEventListener("keydown", (event) => {
         if (event.key !== "Escape") return;
+        if (!ui.promoModal.classList.contains("hidden")) {
+            closePromoModal();
+            return;
+        }
+        if (!ui.lootModal.classList.contains("hidden")) {
+            closeLootModal();
+            return;
+        }
         if (!ui.openInventoryModal.classList.contains("hidden")) {
             closeInventoryOpenModal();
             return;
@@ -1089,7 +1397,10 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.multiContinueBtn?.addEventListener("click", closeOpeningOverlay);
     ui.skipAnimBtn?.addEventListener("click", () => {
         animationState.skipping = true;
+        animationState.onSkip?.();
     });
+    // Pendant le "Brainrot bonus !", toucher l'ecran passe a la suite.
+    ui.bonusContainer.addEventListener("click", () => animationState.onSkip?.());
     
     getSelectedQtyButtons().forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -1104,55 +1415,20 @@ document.addEventListener("DOMContentLoaded", () => {
             ui.inventorySection.scrollIntoView({ behavior: "smooth", block: "start" });
         });
     }
-    ui.promoCodeBtn?.addEventListener("click", async () => {
-        const code = ui.promoCodeInput?.value?.trim();
-        if (!code) {
-            alert("Entre un code valide");
-            return;
-        }
-        
-        const token = getAuthToken();
-        if (!token) {
-            alert("Erreur d'authentification");
-            return;
-        }
-
-        try {
-            const response = await apiFetch(`${API_BASE_URL}/code/${encodeURIComponent(code)}`, {
-                method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                alert(data.message || "Code invalide ou déjà utilisé");
-                return;
-            }
-
-            const result = data.result?.result;
-            let message = "Code validé avec succès ! ";
-
-            if (result?.type === "Gold") {
-                message += `Tu as reçu ${formatCompactPrice(result.amount)} pièces 💰`;
-            } else if (result?.type === "Card") {
-                message += `Tu as reçu une carte 🃏`;
-            } else if (result?.type === "Chest") {
-                message += `Tu as reçu une caisse 📦`;
-            }
-
-            alert(message);
-            
-            if (ui.promoCodeInput) ui.promoCodeInput.value = "";
-            
-            await syncEconomyFromServer({ forceGoldSync: true });
-            loadShop();
-        } catch (error) {
-            console.error("Erreur validation code:", error);
-            alert("Impossible de valider le code pour le moment");
-        }
+    ui.promoCodeBtn?.addEventListener("click", redeemPromoCode);
+    ui.promoCodeInput?.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") redeemPromoCode();
+    });
+    ui.promoCodeInput?.addEventListener("input", () => {
+        ui.promoFeedback.textContent = "";
+    });
+    ui.promoClose.addEventListener("click", closePromoModal);
+    ui.promoInventory.addEventListener("click", () => {
+        closePromoModal();
+        ui.inventorySection?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    ui.promoModal.addEventListener("click", (event) => {
+        if (event.target instanceof HTMLElement && event.target.dataset.closePromo === "true") closePromoModal();
     });
 
     ui.promoCodeInput?.addEventListener("keypress", (e) => {

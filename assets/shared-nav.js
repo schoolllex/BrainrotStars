@@ -25,6 +25,16 @@ document.addEventListener("DOMContentLoaded", () => {
         </button>
     `;
 
+    // Page en cours : meme dossier que le lien (index/, shop/...). Le menu
+    // mobile clone ces liens apres coup et garde donc le meme repere.
+    const folderOf = (pathname) => pathname.replace(/\/[^/]*$/, "");
+    const here = folderOf(location.pathname);
+    nav.querySelectorAll("a.btn-nav").forEach((link) => {
+        if (folderOf(link.pathname) !== here) return;
+        link.classList.add("active");
+        link.setAttribute("aria-current", "page");
+    });
+
     const getToken = () => {
         if (window.BrainrotAuth && typeof window.BrainrotAuth.getToken === "function") {
             return window.BrainrotAuth.getToken() || "";

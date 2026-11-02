@@ -17,6 +17,20 @@ let isInvitationWaiting = false;
 // valident leur deck, sans passer par l'invitation a accepter.
 let isMatchmakingGame = false;
 let matchEnded = false;
+/**
+ * Arrivee par "Lancer une partie" (accueil, ?matchmaking=1) : la recherche
+ * demarre tout de suite, sans afficher le lobby et son tuto.
+ */
+const matchmakingFromHome = new URLSearchParams(window.location.search).get('matchmaking') === '1';
+const pageParams = new URLSearchParams(window.location.search);
+const isTournamentGame = pageParams.get('tournament') === '1' && (pageParams.get('room') || '').startsWith('t-');
+const tournamentPageUrl = pageParams.get('tid')
+  ? `../tournament/tournament.html?id=${encodeURIComponent(pageParams.get('tid'))}`
+  : '../tournament/tournament.html';
+const spectateRoomId = (pageParams.get('spectate') || '').trim();
+let spectating = false;
+if (isTournamentGame) isMatchmakingGame = true;
+if (matchmakingFromHome || isTournamentGame || spectateRoomId) lobbyEl.style.display = 'none';
 
 
 
@@ -164,7 +178,35 @@ function initParticleAnimations() {
 // Initialize animations on load
 initParticleAnimations();
 
+function showSpectatorEndOverlay(payload) {
+  const crowns = payload.crowns || {};
+  const [a, b] = currentRoom?.players || [];
+  const draw = payload.draw || !payload.winnerId;
+  const scoreA = a ? crowns[a.id] || 0 : 0;
+  const scoreB = b ? crowns[b.id] || 0 : 0;
+  const overlay = document.createElement('div');
+  overlay.className = 'game-end-overlay';
+  const content = document.createElement('div');
+  content.className = 'game-end-card game-end-draw';
+  content.innerHTML = `
+    <div class="game-end-emoji">${draw ? '🤝' : '🏁'}</div>
+    <div class="game-end-title">${draw ? 'ÉGALITÉ' : 'FIN DU MATCH'}</div>
+    <div class="game-end-score">
+      <div class="cr-crowns is-me">${crownsHtml(scoreA)}</div>
+      <strong>${scoreA} – ${scoreB}</strong>
+      <div class="cr-crowns">${crownsHtml(scoreB)}</div>
+    </div>
+    <div class="game-end-sub">${escapeHtml(a?.name || '?')} contre ${escapeHtml(b?.name || '?')}<br>${draw ? 'Personne n’a pris l’avantage.' : `<strong>${escapeHtml(payload.winnerName)}</strong> a gagné`}</div>
+    <a class="btn-play game-end-back" href="../admin/admin.html">Retour au panel</a>`;
+  overlay.appendChild(content);
+  document.body.appendChild(overlay);
+}
+
 function showGameEndedOverlay(payload) {
+  if (spectating) {
+    showSpectatorEndOverlay(payload);
+    return;
+  }
   const crowns = payload.crowns || {};
   const draw = payload.draw || !payload.winnerId;
   const isWinner = !draw && payload.winnerId === localPlayerId;
@@ -182,7 +224,7 @@ function showGameEndedOverlay(payload) {
   if (isWinner && rewards) {
     const items = [];
     if (rewards.gold) items.push(`<div class="reward-item gold-reward"><div class="reward-icon">💰</div><div class="reward-amount">${rewards.gold}</div><div class="reward-label">Or</div></div>`);
-    if (rewards.chest) items.push('<div class="reward-item chest-reward"><div class="reward-icon">📦</div><div class="reward-amount">1</div><div class="reward-label">Coffre</div></div>');
+    if (rewards.chest) items.push(`<div class="reward-item chest-reward"><div class="reward-icon">${escapeHtml(rewards.chestIcon || '📦')}</div><div class="reward-amount">1</div><div class="reward-label">${escapeHtml(rewards.chestName || 'Coffre')}</div></div>`);
     if (rewards.exp) items.push(`<div class="reward-item exp-reward"><div class="reward-icon">⭐</div><div class="reward-amount">+${rewards.exp}</div><div class="reward-label">Exp</div></div>`);
     rewardsHTML = `<div class="game-end-rewards"><div class="rewards-title">🎁 Récompenses</div><div class="rewards-grid">${items.join('')}</div></div>`;
   }
@@ -199,7 +241,9 @@ function showGameEndedOverlay(payload) {
   let sub = draw
     ? (forfeit ? 'Les deux joueurs ont quitté la partie.' : 'Personne n’a pris l’avantage.')
     : isWinner ? (winText[payload.reason] || winText.crowns) : `<strong>${escapeHtml(payload.winnerName)}</strong> a gagné`;
-  if (isWinner && forfeit && !rewards) sub += '<br><small>Pas de récompense : la partie a duré moins d’une minute.</small>';
+  if (isWinner && forfeit && !rewards && !isTournamentGame) sub += '<br><small>Pas de récompense : la partie a duré moins d’une minute.</small>';
+  if (isTournamentGame && draw) sub = 'Égalité : la manche va être rejouée.';
+  const backUrl = isTournamentGame ? tournamentPageUrl : '../index/index.html';
   content.innerHTML = `
     <div class="game-end-emoji">${emoji}</div>
     <div class="game-end-title">${title}</div>
@@ -210,11 +254,11 @@ function showGameEndedOverlay(payload) {
     </div>
     <div class="game-end-sub">${sub}</div>
     ${rewardsHTML}
-    <a class="btn-play game-end-back" href="../index/index.html">Retour à l’accueil</a>`;
+    <a class="btn-play game-end-back" href="${backUrl}">${isTournamentGame ? 'Retour au tournoi' : 'Retour à l’accueil'}</a>`;
 
   overlay.appendChild(content);
   document.body.appendChild(overlay);
-  setTimeout(() => { window.location.href = '../index/index.html'; }, 6000);
+  setTimeout(() => { window.location.href = backUrl; }, 6000);
 }
 /* ==========================================================================
    TEMPS REEL : socket.io
@@ -245,7 +289,8 @@ function bindGameSocket() {
     // un etat complet, ce qui resynchronise la partie apres une coupure.
     if (!joinedRoomId) return;
     Arena.reset();
-    gameSocket.emit('join', { roomId: joinedRoomId }, onJoinAck);
+    if (spectating) gameSocket.emit('spectate', { roomId: joinedRoomId }, onSpectateAck);
+    else gameSocket.emit('join', { roomId: joinedRoomId }, onJoinAck);
   });
 
   gameSocket.on('init', (data) => {
@@ -253,6 +298,8 @@ function bindGameSocket() {
     if (data.playerId) {
       localPlayerId = data.playerId;
       try { localStorage.setItem('playerId', localPlayerId); } catch {}
+    } else if (spectating) {
+      localPlayerId = data.room.players?.[0]?.id || null;
     }
     currentRoom = data.room;
     Arena.reset();
@@ -260,6 +307,7 @@ function bindGameSocket() {
     Arena.spawn(data.room.entities || []);
     setClock(data.room.clock);
     applyRoomState(currentRoom);
+    if (spectating) showSpectatorView();
   });
 
   gameSocket.on('players', (data) => {
@@ -311,6 +359,36 @@ function onJoinAck(res) {
   console.error('Impossible de rejoindre la room :', res.error);
 }
 
+function showSpectatorView() {
+  if (gameEl.style.display === 'block') {
+    renderRoom(currentRoom);
+    return;
+  }
+  invitationModal.style.display = 'none';
+  gameEl.style.display = 'block';
+  document.body.classList.add('game-active', 'is-spectator');
+  Arena.start();
+  renderRoom(currentRoom);
+  if (!currentRoom?.started) showGameToast('👀 Le match n’a pas encore commencé.', 4000);
+}
+
+function onSpectateAck(res) {
+  if (!res || res.ok) return;
+  joinedRoomId = null;
+  gameEl.style.display = 'none';
+  document.body.classList.remove('game-active', 'is-spectator');
+  invitationModal.style.display = 'flex';
+  showWaitingDeadEnd('👀 Match indisponible', res.error || 'Ce match est terminé.');
+}
+
+async function startSpectating(roomId) {
+  try { await window.BrainrotAuth?.waitUntilReady?.(); } catch {}
+  spectating = true;
+  if (!bindGameSocket()) return;
+  joinedRoomId = roomId;
+  if (gameSocket.connected) gameSocket.emit('spectate', { roomId }, onSpectateAck);
+}
+
 /** Quitte la room de combat ; la socket de la page, elle, reste ouverte. */
 function disconnectGameSocket() {
   if (!gameSocket || !joinedRoomId) return;
@@ -334,7 +412,7 @@ let pendingNavTarget = null;
 let leaveConfirmed = false;
 
 function isMatchInProgress() {
-  return document.body.classList.contains('game-active') && !matchEnded;
+  return !spectating && document.body.classList.contains('game-active') && !matchEnded;
 }
 
 function openLeaveGameModal(target) {
@@ -410,7 +488,11 @@ function applyRoomState(room) {
   if (invModalVisible) {
     if (room.players.length !== 2) {
       // L'adversaire est reparti avant le combat : le serveur a libere sa place.
-      if (waitingOpponentName && !gameStartScheduled) {
+      if (waitingOpponentName && !gameStartScheduled && isTournamentGame) {
+        document.getElementById('invitation-title').textContent = '⌛ ' + waitingOpponentName + ' est parti';
+        document.getElementById('invitation-message').textContent = 'S’il ne revient pas à temps, tu remportes la manche.';
+        waitingOpponentName = null;
+      } else if (waitingOpponentName && !gameStartScheduled) {
         showWaitingDeadEnd('🚪 ' + waitingOpponentName + ' est parti', 'Ton adversaire a quitté la partie avant le combat.');
       }
       return;
@@ -495,7 +577,7 @@ function showWaitingDeadEnd(title, message) {
 // previent le serveur, qui libere la place et avertit l'autre joueur.
 document.getElementById('leave-waiting-btn').addEventListener('click', async () => {
   await quitMatch();
-  window.location.href = window.location.pathname;
+  window.location.href = isTournamentGame ? tournamentPageUrl : spectating ? '../admin/admin.html' : window.location.pathname;
 });
 
 joinBtn.addEventListener('click', async ()=>{
@@ -520,6 +602,7 @@ document.getElementById('matchmaking-btn')?.addEventListener('click', async () =
   window.PlayWebAnalytics?.track('matchmaking_started');
   showMatchmakingWaiting();
   isSearchingMatch = true;
+  resetBotOffer();
   matchmakingStartTime = Date.now();
   if (matchmakingTimerInterval) clearInterval(matchmakingTimerInterval);
   matchmakingTimerInterval = setInterval(updateMatchmakingTimer, 1000);
@@ -528,10 +611,20 @@ document.getElementById('matchmaking-btn')?.addEventListener('click', async () =
     await requestMatch(token);
   } catch (err) {
     console.error('❌ Matchmaking error:', err);
-    hideMatchmakingWaiting();
     alert(err.message || 'Erreur réseau. Réessaye !');
+    exitMatchmaking();
   }
 });
+
+/** Fin de recherche sans match : retour au lobby, ou a l'accueil si on en venait. */
+function exitMatchmaking() {
+  if (matchmakingFromHome) {
+    clearMatchmakingPoll();
+    window.location.href = '../index/index.html';
+    return;
+  }
+  hideMatchmakingWaiting();
+}
 
 /**
  * S'inscrit dans la file. Le serveur repond directement la room si un
@@ -588,6 +681,30 @@ function hideMatchmakingWaiting() {
   clearMatchmakingPoll();
 }
 
+const BOT_BUTTON_AFTER_S = 15;
+const botMatchBtn = document.getElementById('bot-match-btn');
+const botHint = document.getElementById('bot-hint');
+const botHintBar = document.getElementById('bot-hint-bar');
+const botHintCount = document.getElementById('bot-hint-count');
+
+function resetBotOffer() {
+  botMatchBtn?.classList.add('hidden');
+  if (botMatchBtn) botMatchBtn.disabled = false;
+  botHint?.classList.remove('hidden');
+  if (botHintBar) botHintBar.style.width = '0%';
+  if (botHintCount) botHintCount.textContent = BOT_BUTTON_AFTER_S + 's';
+}
+
+function updateBotOffer(elapsed) {
+  if (!isSearchingMatch) return;
+  const left = Math.max(0, BOT_BUTTON_AFTER_S - elapsed);
+  if (botHintBar) botHintBar.style.width = Math.min(100, (elapsed / BOT_BUTTON_AFTER_S) * 100) + '%';
+  if (botHintCount) botHintCount.textContent = left + 's';
+  if (left > 0) return;
+  botHint?.classList.add('hidden');
+  botMatchBtn?.classList.remove('hidden');
+}
+
 function updateMatchmakingTimer() {
   if (!matchmakingStartTime) return;
   const elapsed = Math.floor((Date.now() - matchmakingStartTime) / 1000);
@@ -595,7 +712,33 @@ function updateMatchmakingTimer() {
   if (timerEl) {
     timerEl.textContent = elapsed + 's';
   }
+  updateBotOffer(elapsed);
 }
+
+botMatchBtn?.addEventListener('click', async () => {
+  const token = window.BrainrotAuth?.getToken?.() || '';
+  if (!token || !isSearchingMatch || botMatchBtn.disabled) return;
+  botMatchBtn.disabled = true;
+  try {
+    const res = await apiFetch(window.API_BASE_URL + '/game/matchmaking/bot', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const payload = await res.json().catch(() => null);
+    if (res.ok && payload?.success && payload.roomId) {
+      window.PlayWebAnalytics?.track('bot_match_started');
+      onMatchFound(payload.roomId);
+      return;
+    }
+    console.warn('Partie contre le bot impossible :', payload?.message);
+  } catch (err) {
+    console.error('Bot match error:', err);
+  }
+  botMatchBtn.disabled = false;
+});
 
 function showMatchmakingStats(stats) {
   const queueEl = document.getElementById('queue-count');
@@ -655,6 +798,11 @@ function watchMatchmaking() {
 
 function clearMatchmakingPoll() {
   isSearchingMatch = false;
+  if (botMatchBtn) {
+    botMatchBtn.classList.add('hidden');
+    botMatchBtn.disabled = false;
+  }
+  botHint?.classList.add('hidden');
   clearTimeout(matchmakingRetryTimer);
   matchmakingRetryTimer = null;
   if (matchmakingWatching) {
@@ -682,10 +830,10 @@ document.getElementById('cancel-matchmaking-btn')?.addEventListener('click', asy
       }
     });
 
-    hideMatchmakingWaiting();
+    exitMatchmaking();
   } catch (err) {
     console.error('Cancel matchmaking error:', err);
-    hideMatchmakingWaiting();
+    exitMatchmaking();
   }
 });
 
@@ -762,6 +910,16 @@ document.getElementById('invite-btn')?.addEventListener('click', async () => {
 });
 
 (async () => {
+  if (spectateRoomId) {
+    startSpectating(spectateRoomId);
+    return;
+  }
+  if (matchmakingFromHome) {
+    // Un rechargement de la page ne relance pas une recherche.
+    history.replaceState(null, '', window.location.pathname);
+    document.getElementById('matchmaking-btn')?.click();
+  }
+
   // Le pseudo est facultatif (le serveur le relit en base) : un echec ici ne
   // doit plus empecher de rejoindre l'arene d'un lien d'invitation.
   try {
@@ -847,12 +1005,13 @@ function renderRoom(room) {
   if (foeAway !== lastFoeAway) {
     lastFoeAway = foeAway;
     hud.foeSide.classList.toggle('is-away', foeAway);
-    if (foe && !matchEnded) {
+    if (foe && !matchEnded && !spectating) {
       showGameToast(foeAway
         ? `📡 ${foe.name} s'est déconnecté. S'il ne revient pas vite, tu gagnes !`
         : `✅ ${foe.name} est de retour !`, foeAway ? 5000 : 2200);
     }
   }
+  if (spectating) return;
   renderHand(me);
   renderNext(me);
 }
@@ -928,7 +1087,7 @@ function overCanvas(ev) {
 }
 
 function tryPlay(card, pos) {
-  if (!card || !pos) return;
+  if (spectating || !card || !pos) return;
   if (!Arena.canPlace(card, pos)) {
     showGameToast(card.type === 'spell' ? 'Vise un endroit de l’arène !' : 'Pose tes unités de ton côté de la rivière !');
     return;
@@ -1059,160 +1218,131 @@ async function fetchAvailableCards() {
   }
 }
 
-function loadSavedDeck() {
-  try {
-    return JSON.parse(localStorage.getItem('brainrot_saved_deck') || '[]');
-  } catch { return []; }
+const DECK_SIZE = 10;
+const DECK_STORE = 'brainrot_deck_ids';
+let deckEntries = [];
+
+function deckKey(card) {
+  return `${card.name}_${card.type || 'unit'}`;
 }
 
-function saveDeckToStorage(keys) {
-  localStorage.setItem('brainrot_saved_deck', JSON.stringify(keys));
+function loadSavedDeckIds(available) {
+  try {
+    const ids = JSON.parse(localStorage.getItem(DECK_STORE) || 'null');
+    if (Array.isArray(ids)) return ids;
+    const legacy = JSON.parse(localStorage.getItem('brainrot_saved_deck') || '[]');
+    if (!Array.isArray(legacy)) return [];
+    return legacy.map((key) => available.find((entry) => deckKey(entry.card) === key)?.cardId).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function saveDeck() {
+  try {
+    localStorage.setItem(DECK_STORE, JSON.stringify(selectedDeck.map((entry) => entry.cardId)));
+    localStorage.removeItem('brainrot_saved_deck');
+  } catch {}
+}
+
+function isInDeck(entry) {
+  return selectedDeck.some((picked) => picked.cardId === entry.cardId);
+}
+
+function refreshDeckCards() {
+  document.querySelectorAll('#deck-list .deck-card').forEach((el) => {
+    const entry = deckEntries.find((e) => e.cardId === el.dataset.id);
+    el.classList.toggle('selected', !!entry && isInDeck(entry));
+  });
+  updateDeckCounter();
 }
 
 function renderDeckSelector(availableCards) {
   const deckList = document.getElementById('deck-list');
   deckList.innerHTML = '';
 
-  if (!availableCards || availableCards.length === 0) {
-    deckList.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:var(--text-muted);">Pas de cartes disponibles. Utilise un deck aléatoire.</p>';
+  const seen = new Set();
+  deckEntries = (availableCards || []).filter((entry) => {
+    if (!entry.cardId || seen.has(entry.cardId)) return false;
+    seen.add(entry.cardId);
+    return true;
+  });
+
+  if (deckEntries.length === 0) {
+    deckList.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:var(--text-muted);">Pas de cartes disponibles.</p>';
+    selectedDeck = [];
+    updateDeckCounter();
     return;
   }
 
-  const grouped = {};
-  availableCards.forEach(entry => {
-    const card = entry.card || {};
-    const key = `${card.name}_${card.type || 'unit'}`;
-    if (!grouped[key]) grouped[key] = { ...entry, card };
-  });
+  const savedIds = loadSavedDeckIds(deckEntries);
+  selectedDeck = [];
+  for (const id of savedIds) {
+    const entry = deckEntries.find((e) => e.cardId === id);
+    if (entry && !isInDeck(entry) && selectedDeck.length < DECK_SIZE) selectedDeck.push(entry);
+  }
+  saveDeck();
 
-  const savedKeys = loadSavedDeck();
-
-  updateSavedDeckCount(savedKeys.length);
-
-  Object.entries(grouped).forEach(([key, entry]) => {
+  deckEntries.forEach((entry) => {
     const card = entry.card;
     const cardEl = document.createElement('div');
     cardEl.className = 'deck-card btn-card';
-    cardEl.dataset.key = key;
+    cardEl.dataset.id = entry.cardId;
 
-    const typeLabel = Arena.roleOf(card).label;
-    const inSaved = savedKeys.includes(key);
-
-    // Afficher image si disponible, sinon emoji
-    const cardImage = card.link ? `<img src="${card.link}" style="width:64px; height:64px; object-fit:cover; border-radius:6px; display:block; margin:0 auto; flex-shrink:0;">` : `<div class="card-emoji">${card.emoji || '🃏'}</div>`;
+    const cardImage = card.link
+      ? `<img src="${escapeHtml(card.link)}" alt="" style="width:64px; height:64px; object-fit:cover; border-radius:6px; display:block; margin:0 auto; flex-shrink:0;">`
+      : `<div class="card-emoji">${escapeHtml(card.emoji || '🃏')}</div>`;
 
     cardEl.innerHTML = `
-      <div class="deck-star" style="display:${inSaved ? 'flex' : 'none'}">⭐</div>
+      <span class="deck-check" aria-hidden="true">✓</span>
       ${cardImage}
-      <div class="card-name">${card.name}</div>
-      <div class="card-cost-label">Coût: <span class="card-cost">${card.cost || 1}</span></div>
-      <div class="card-type">${typeLabel}</div>
-      <button class="deck-add-btn ${inSaved ? 'deck-add-btn--remove' : ''}" type="button">${inSaved ? '★ Retirer du deck' : '☆ Ajouter au deck'}</button>
+      <div class="card-name">${escapeHtml(card.name)}</div>
+      <div class="card-cost-label">Coût: <span class="card-cost">${Number(card.cost) || 1}</span></div>
+      <div class="card-type">${escapeHtml(Arena.roleOf(card).label)}</div>
     `;
-    
-    if (!card.link) {
-      console.warn('Carte sans lien:', entry);
-    }
 
-    const refreshCard = () => {
-      const inDeckNow = savedKeys.includes(key);
-      const selectedNow = selectedDeck.some(c => `${c.card.name}_${c.card.type || 'unit'}` === key);
-      cardEl.classList.toggle('selected', selectedNow);
-      const star = cardEl.querySelector('.deck-star');
-      const btn = cardEl.querySelector('.deck-add-btn');
-      if (star) star.style.display = inDeckNow ? 'flex' : 'none';
-      if (btn) {
-        btn.textContent = inDeckNow ? '★ Retirer du deck' : '☆ Ajouter au deck';
-        btn.classList.toggle('deck-add-btn--remove', inDeckNow);
-      }
-    };
-
-    cardEl.addEventListener('click', (e) => {
-      if (e.target.closest('.deck-add-btn')) return;
-      const inSelected = selectedDeck.some(c => `${c.card.name}_${c.card.type || 'unit'}` === key);
-      if (inSelected) {
-        const idx = selectedDeck.findIndex(c => `${c.card.name}_${c.card.type || 'unit'}` === key);
-        if (idx !== -1) selectedDeck.splice(idx, 1);
+    cardEl.addEventListener('click', () => {
+      if (isInDeck(entry)) {
+        selectedDeck = selectedDeck.filter((picked) => picked.cardId !== entry.cardId);
+      } else if (selectedDeck.length >= DECK_SIZE) {
+        showGameToast(`Ton deck est complet (${DECK_SIZE}/${DECK_SIZE}) : retire une carte d'abord.`);
+        cardEl.animate?.([
+          { transform: 'translateX(0)' },
+          { transform: 'translateX(-5px)' },
+          { transform: 'translateX(5px)' },
+          { transform: 'translateX(0)' }
+        ], { duration: 240 });
+        return;
       } else {
-        if (selectedDeck.length < 10) selectedDeck.push(entry);
+        selectedDeck.push(entry);
       }
-      refreshCard();
-      updateDeckCounter();
-    });
-
-    const btn = cardEl.querySelector('.deck-add-btn');
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const idx = savedKeys.indexOf(key);
-      if (idx !== -1) {
-        savedKeys.splice(idx, 1);
-      } else {
-        if (savedKeys.length < 10) savedKeys.push(key);
-      }
-      saveDeckToStorage(savedKeys);
-      updateSavedDeckCount(savedKeys.length);
-      refreshCard();
+      saveDeck();
+      refreshDeckCards();
     });
 
     deckList.appendChild(cardEl);
   });
 
-  const useSavedBtn = document.getElementById('use-saved-deck');
-  if (useSavedBtn) {
-    useSavedBtn.onclick = () => {
-      const keys = loadSavedDeck();
-      if (keys.length === 0) {
-        alert('Aucun deck sauvegardé. Ajoute des cartes avec ☆ sur chaque carte !');
-        return;
-      }
+  const clearBtn = document.getElementById('clear-deck');
+  if (clearBtn) {
+    clearBtn.onclick = () => {
       selectedDeck = [];
-      keys.forEach(k => {
-        if (grouped[k]) selectedDeck.push(grouped[k]);
-      });
-      document.querySelectorAll('.deck-card').forEach(el => {
-        const k = el.dataset.key;
-        el.classList.toggle('selected', selectedDeck.some(c => `${c.card.name}_${c.card.type || 'unit'}` === k));
-      });
-      updateDeckCounter();
+      saveDeck();
+      refreshDeckCards();
     };
   }
 
-  const resetBtn = document.getElementById('reset-saved-deck');
-  if (resetBtn) {
-    resetBtn.onclick = () => {
-      if (confirm('⚠️ Êtes-vous sûr de vouloir réinitialiser votre deck sauvegardé ?\n\nCette action est irréversible !')) {
-        saveDeckToStorage([]);
-        updateSavedDeckCount(0);
-        alert('✅ Deck réinitialisé avec succès !');
-        
-        // Décocher toutes les cartes
-        document.querySelectorAll('.deck-card').forEach(el => {
-          const star = el.querySelector('.deck-star');
-          const btn = el.querySelector('.deck-add-btn');
-          if (star) star.style.display = 'none';
-          if (btn) {
-            btn.textContent = '☆ Ajouter au deck';
-            btn.classList.remove('deck-add-btn--remove');
-          }
-        });
-      }
-    };
-  }
-
-  updateDeckCounter();
-}
-
-function updateSavedDeckCount(count) {
-  const el = document.getElementById('saved-deck-count');
-  if (el) el.textContent = count > 0 ? `(${count}/10 cartes)` : '(aucun deck sauvegardé)';
+  refreshDeckCards();
 }
 
 function updateDeckCounter() {
   const confirmBtn = document.getElementById('confirm-deck');
-  const isComplete = selectedDeck.length === 10;
+  const isComplete = selectedDeck.length === DECK_SIZE;
   confirmBtn.disabled = !isComplete;
-  confirmBtn.innerHTML = `⚔️ Commencer le combat (${selectedDeck.length}/10)<div class="shine"></div>`;
+  confirmBtn.innerHTML = `⚔️ Commencer le combat (${selectedDeck.length}/${DECK_SIZE})<div class="shine"></div>`;
   confirmBtn.classList.toggle('btn-disabled', !isComplete);
+  const clearBtn = document.getElementById('clear-deck');
+  if (clearBtn) clearBtn.disabled = selectedDeck.length === 0;
 }
 
 async function showDeckSelector() {
@@ -1253,25 +1383,24 @@ async function showDeckSelector() {
     return;
   }
 
-  const normalized = fetchedCards.map((entry, idx) => {
+  const normalized = fetchedCards.map((entry) => {
     const cardData = entry.card || entry;
     return {
-      cardId: entry.cardId || (cardData.name ? cardData.name.replace(/\s+/g, '_') : ('card_' + idx)) + '_' + idx,
+      cardId: entry.cardId || cardData.id,
       deckId: entry.deckId,
       quantity: entry.quantity || 1,
       card: cardData
     };
   });
 
-  selectedDeck = [];
   renderDeckSelector(normalized);
   lobbyEl.style.display = 'none';
   deckSelectorEl.style.display = 'block';
 }
 
 document.getElementById('confirm-deck').addEventListener('click', async () => {
-  if (selectedDeck.length === 0) {
-    alert('Sélectionne au moins une carte!');
+  if (selectedDeck.length !== DECK_SIZE) {
+    showGameToast(`Choisis ${DECK_SIZE} cartes pour ton deck.`);
     return;
   }
 
@@ -1298,6 +1427,11 @@ document.getElementById('confirm-deck').addEventListener('click', async () => {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: 'join failed' }));
+      if (isTournamentGame) {
+        alert(err && err.error ? err.error : 'Ce match de tournoi n’est plus disponible.');
+        window.location.href = tournamentPageUrl;
+        return;
+      }
       alert('Join failed: ' + (err && err.error ? err.error : res.status));
       return;
     }
@@ -1337,13 +1471,13 @@ function showInvitationModal(joinData) {
   const rejectBtn = document.getElementById('reject-invitation-btn');
   
   if (isMatchmakingGame) {
-    title.textContent = '⚔️ Adversaire trouvé';
-    message.textContent = 'En attente que ton adversaire choisisse son deck...';
+    title.textContent = isTournamentGame ? '🏆 Match de tournoi' : '⚔️ Adversaire trouvé';
+    message.textContent = isTournamentGame ? 'En attente de ton adversaire...' : 'En attente que ton adversaire choisisse son deck...';
     acceptBtn.style.display = 'none';
     rejectBtn.style.display = 'none';
     setWaitingButtons({ waiting: true, leaveLabel: '🚪 Quitter' });
     clearTimeout(matchmakingWaitTimer);
-    matchmakingWaitTimer = setTimeout(() => {
+    if (!isTournamentGame) matchmakingWaitTimer = setTimeout(() => {
       if (!gameStartScheduled && !waitingOpponentName) {
         showWaitingDeadEnd('⌛ Adversaire introuvable', 'Ton adversaire n’a pas validé son deck à temps.');
       }

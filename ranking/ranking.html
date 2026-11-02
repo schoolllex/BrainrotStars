@@ -79,6 +79,9 @@
                             <option value="money">Argent</option>
                             <option value="rebirth">Rebirths</option>
                             <option value="win">Parties gagnées</option>
+                            <option value="villageWins">Victoires Villaggio</option>
+                            <option value="achievements">Succès</option>
+                            <option value="streak">Série de connexion</option>
                         </select>
                     </div>
                 </div>
@@ -93,6 +96,9 @@
                                 <th>Argent</th>
                                 <th>Rebirths</th>
                                 <th>Parties gagnées</th>
+                                <th>Victoires Villaggio</th>
+                                <th>Succès</th>
+                                <th>Série</th>
                             </tr>
                         </thead>
                         <tbody id="ranking-body"></tbody>
@@ -123,7 +129,7 @@
             <button id="discord-modal-close" class="discord-modal-close" type="button" aria-label="Fermer">
                 <i data-lucide="x"></i>
             </button>
-            <div class="discord-modal-icon" aria-hidden="true">💬</div>
+            <div class="discord-modal-icon" aria-hidden="true"><i data-lucide="message-circle"></i></div>
             <h2 id="discord-modal-title" class="discord-modal-title">Rejoins notre Discord</h2>
             <img class="discord-modal-qr" src="../assets/qr-code-discord.jpg" alt="QR code pour rejoindre le Discord BrainrotStar">
             <p class="discord-modal-or">ou</p>
@@ -145,11 +151,12 @@
 
     <script src="../assets/shared-nav.js"></script>
     <script src="../assets/mobile-nav.js"></script>
-    <script src="../assets/rebirth-reveal.js"></script>
     <script src="../assets/loading.js"></script>
     <script src="../assets/auth-gate.js"></script>
     <script src="../assets/notif.js"></script>
     <script src="../assets/game-notif.js"></script>
+    <script src="../assets/announce.js"></script>
+    <script src="../assets/tournament-banner.js"></script>
     <script src="ranking.js"></script>
 </body>
 </html>

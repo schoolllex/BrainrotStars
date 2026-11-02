@@ -74,9 +74,18 @@
     const isLive = () => B?.kind === "live";
 
     function troopOrder(types) {
-        const order = S.data?.troops?.map((t) => t.type) || [];
+        const order = [...(S.data?.troops || []), ...(S.data?.spells || [])].map((t) => t.type);
         return types.slice().sort((a, b) => order.indexOf(a) - order.indexOf(b));
     }
+
+    const SPELL_COLORS = {
+        lightning: "250,204,21",
+        heal: "74,222,128",
+        rage: "217,70,239",
+        freeze: "125,211,252"
+    };
+
+    const isSpellType = (type) => Boolean(B?.data.scenario.spells?.[type]);
 
     function createState(kind, data, sim) {
         const battle = sim.createBattle(data.scenario);
@@ -90,7 +99,7 @@
             battle,
             items: view.isoSort(items),
             phase: kind === "live" ? "scout" : "fight",
-            selected: troopOrder(Object.keys(battle.remaining)).find((t) => battle.remaining[t] > 0) || null,
+            selected: troopOrder(Object.keys(battle.remaining)).find((t) => battle.remaining[t] > 0 && !data.scenario.spells?.[t]) || null,
             startPerf: 0,
             sent: 0,
             sending: null,
@@ -199,6 +208,18 @@
                 case "heal":
                     view.fx.ring(e.x, e.y, e.r, "rgba(74,222,128,ALPHA)");
                     break;
+                case "spell": {
+                    const color = SPELL_COLORS[e.kind] || "255,255,255";
+                    if (e.kind === "lightning") {
+                        view.fx.boom(e.x, e.y, e.r, color);
+                        view.fx.emoji(e.x, e.y, "⚡", 60, 34, 650);
+                        view.fx.smoke(e.x, e.y, 1);
+                    } else {
+                        view.fx.ring(e.x, e.y, e.r, `rgba(${color},ALPHA)`);
+                        view.fx.emoji(e.x, e.y, V.spell(e.type)?.emoji || "✨", 40, 28, 800);
+                    }
+                    break;
+                }
                 default:
                     break;
             }
@@ -339,6 +360,11 @@
         drawUnits([...pending], alpha);
         drawUnits(air, alpha);
 
+        for (const z of battle.zones) {
+            const color = SPELL_COLORS[z.effect] || "255,255,255";
+            view.drawRange(z.x, z.y, z.r, 0, `rgba(${color},ALPHA)`);
+        }
+
         const vt = visualTime() - 1;
         for (const p of B.projectiles) {
             p.t = (vt - p.start) / (p.end - p.start);
@@ -379,7 +405,8 @@
 
     function selectNextTroop() {
         const order = troopOrder(Object.keys(B.battle.remaining));
-        B.selected = order.find((t) => B.battle.remaining[t] > 0) || null;
+        B.selected = order.find((t) => B.battle.remaining[t] > 0 && !isSpellType(t))
+            || order.find((t) => B.battle.remaining[t] > 0) || null;
         renderTroopBar();
     }
 
@@ -404,10 +431,12 @@
             }
             return false;
         }
+        const spell = isSpellType(type);
+        if (spell && fromHold) return false;
         const cell = view.gridAt(sx, sy);
         const x = round2(cell.x);
         const y = round2(cell.y);
-        if (!battle.canDeploy(x, y)) {
+        if (spell ? !battle.canCast(x, y) : !battle.canDeploy(x, y)) {
             if (!fromHold) flashForbidden();
             return false;
         }
@@ -437,7 +466,8 @@
             if (!B) return;
             if (!isLive()) return;
             const cell = view.gridAt(x, y);
-            if (B.battle.canDeploy(round2(cell.x), round2(cell.y))) {
+            const casting = B.selected && isSpellType(B.selected) && (B.phase === "scout" || B.phase === "fight");
+            if (casting ? B.battle.canCast(round2(cell.x), round2(cell.y)) : B.battle.canDeploy(round2(cell.x), round2(cell.y))) {
                 deployAt(x, y);
                 return;
             }
@@ -450,6 +480,7 @@
         },
         longPressDelay(x, y) {
             if (!isLive() || (B.phase !== "scout" && B.phase !== "fight")) return 0;
+            if (B.selected && isSpellType(B.selected)) return 0;
             const cell = view.gridAt(x, y);
             return B.battle.canDeploy(round2(cell.x), round2(cell.y)) ? HOLD_DELAY_MS : 0;
         },
@@ -564,7 +595,7 @@
             rows.push(["Trophées", `${r.trophies >= 0 ? "+" : ""}${r.trophies} 🏆`]);
         }
         if (rw.xp) rows.push(["Passe de combat", `+${rw.xp} XP`]);
-        const used = Object.entries(rw.used || {}).map(([type, n]) => `${V.troop(type)?.emoji || ""}×${n}`).join(" ");
+        const used = Object.entries(rw.used || {}).map(([type, n]) => `${V.unit(type)?.emoji || ""}×${n}`).join(" ");
         const extras = [];
         if (rw.chest) extras.push(`<div class="v-reward">🎁 Coffre du jour : <b>${esc(rw.chest)}</b></div>`);
         if (rw.campaign?.chest) extras.push(`<div class="v-reward">🎁 Campagne terminée : <b>${esc(rw.campaign.chest)}</b></div>`);
@@ -653,9 +684,10 @@
         if (B.troopLayout !== layout) {
             B.troopLayout = layout;
             ui.btTroops.innerHTML = types.map((type) => {
-                const t = V.troop(type);
-                const level = B.data.scenario.troops[type]?.level || 1;
-                return `<button class="v-bt-troop" type="button" data-type="${type}">
+                const t = V.unit(type);
+                const spell = isSpellType(type);
+                const level = (spell ? B.data.scenario.spells[type] : B.data.scenario.troops[type])?.level || 1;
+                return `<button class="v-bt-troop${spell ? " is-spell" : ""}" type="button" data-type="${type}">
                     <span class="v-bt-troop-emoji" aria-hidden="true">${t?.emoji || "❔"}</span>
                     <b></b><small>niv. ${level}</small>
                 </button>`;
@@ -892,10 +924,12 @@
         if (war.underAttack) parts.push(`<div class="v-warning">🚨 Ton village est attaqué en ce moment !</div>`);
 
         const ready = d.troops.filter((t) => army.troops[t.type] > 0);
+        const spellsReady = (d.spells || []).filter((sp) => army.spells?.[sp.type] > 0);
         parts.push(`<div class="v-army-summary">
             <div class="v-army-line"><b>⛺ Armée ${army.used}/${army.capacity}</b>
             ${army.queue.length ? `<small>⏱ +${army.queued} places en entraînement (${fmtDur((army.endsAt - V.serverNow()) / 1000)})</small>` : ""}</div>
             ${ready.length ? `<div class="v-chips">${ready.map((t) => `<span class="v-chip"><span aria-hidden="true">${t.emoji}</span>×${army.troops[t.type]}</span>`).join("")}</div>` : '<p class="v-empty">Aucune troupe prête.</p>'}
+            ${spellsReady.length ? `<div class="v-chips">${spellsReady.map((sp) => `<span class="v-chip"><span aria-hidden="true">${sp.emoji}</span>×${army.spells[sp.type]}</span>`).join("")}</div>` : ""}
             <button class="v-btn v-btn-army" type="button" data-act="open-army">⚔️ Gérer l'armée</button>
         </div>`);
 

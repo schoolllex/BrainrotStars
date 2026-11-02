@@ -143,7 +143,7 @@
       </section>
 
       <section id="matchmaking-waiting" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;">
-        <div style="background:var(--bg-secondary); border-radius:16px; padding:48px; text-align:center; max-width:500px; box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+        <div class="mm-card" style="background:var(--bg-secondary); border-radius:16px; padding:48px; text-align:center; max-width:500px; box-shadow:0 20px 60px rgba(0,0,0,0.5);">
           <div style="font-size:3rem; margin-bottom:24px; animation:bounce 2s infinite;">⚡</div>
           <h2 id="matchmaking-title" style="margin-bottom:16px; font-size:1.8rem; font-weight:900;">Recherche d'adversaire</h2>
           <p id="matchmaking-message" style="color:var(--text-muted); margin-bottom:32px; line-height:1.6; font-size:1.05rem;">En attente d'un adversaire de ton niveau...</p>
@@ -167,7 +167,21 @@
             </div>
           </div>
 
-          <div style="display:flex; justify-content:center;">
+          <div id="bot-hint" class="mm-bot-hint hidden">
+            <span class="mm-bot-hint-icon"><i data-lucide="bot"></i></span>
+            <div class="mm-bot-hint-body">
+              <span class="mm-bot-hint-text">Tu pourras jouer contre un bot si aucun joueur n'est trouvé en 15 secondes</span>
+              <div class="mm-bot-hint-bar"><i id="bot-hint-bar"></i></div>
+            </div>
+            <span class="mm-bot-hint-count" id="bot-hint-count">15s</span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+            <button id="bot-match-btn" class="mm-bot-btn hidden" type="button">
+              <i data-lucide="bot"></i>
+              <span>Jouer contre un bot</span>
+              <span class="shine" aria-hidden="true"></span>
+            </button>
             <button id="cancel-matchmaking-btn" class="btn-card" style="flex-direction:row; gap:8px; justify-content:center; padding:1rem 1.5rem;">
               <i data-lucide="x" style="width:18px;height:18px;"></i>
               <span style="font-weight:800;">Annuler la recherche</span>
@@ -200,18 +214,11 @@
         </div>
         <p class="cr-deck-note">+ 4 objets à lancer ajoutés d'office : 💣 Bombardino · 🍾 Molotov Caliente · 🧊 Glaçon Glacio · 🍌 Banana Tung Tung</p>
         <div id="deck-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:12px; margin-bottom:20px;"></div>
-        <div style="display:flex; flex-direction:column; gap:10px;">
-          <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
-            <button id="use-saved-deck" class="btn-card" type="button" style="flex-direction:row; gap:8px; justify-content:center; padding:0.85rem 1.25rem; flex:1; min-width:200px;">
-              <i data-lucide="star" style="width:18px;height:18px;color:#facc15;"></i>
-              <span style="font-weight:800;">Utiliser mon deck</span>
-              <span id="saved-deck-count" style="font-size:0.78rem; color:var(--text-muted); font-weight:600;"></span>
-            </button>
-            <button id="reset-saved-deck" class="btn-card" type="button" style="flex-direction:row; gap:8px; justify-content:center; padding:0.85rem 1.25rem;">
-              <i data-lucide="trash-2" style="width:18px;height:18px;color:#ef4444;"></i>
-              <span style="font-weight:800;">Réinitialiser</span>
-            </button>
-          </div>
+        <div class="deck-actions">
+          <button id="clear-deck" class="btn-card deck-clear-btn" type="button" aria-label="Vider le deck" title="Vider le deck">
+            <i data-lucide="trash-2" style="width:18px;height:18px;"></i>
+            <span class="deck-clear-label">Vider le deck</span>
+          </button>
           <button id="confirm-deck" class="btn-play" disabled>
             <i data-lucide="swords" style="margin-right:8px; width:20px; height:20px;"></i>
             Commencer le combat ⚔️ (0/10)
@@ -317,6 +324,7 @@
   <script src="../assets/auth-gate.js"></script>
   <script src="../assets/notif.js"></script>
   <script src="../assets/game-notif.js"></script>
+  <script src="../assets/tournament-banner.js"></script>
   <script src="game.arena.js"></script>
   <script src="game.js"></script>
   <script>lucide.createIcons();</script>

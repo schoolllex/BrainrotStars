@@ -215,6 +215,7 @@
         const h = {};
         if (headers.has("authorization")) h.authorization = headers.get("authorization");
         if (headers.has("content-type")) h["content-type"] = headers.get("content-type");
+        if (headers.has("x-admin-session")) h["x-admin-session"] = headers.get("x-admin-session");
 
         const request = {
             m: String(init.method || "GET").toUpperCase(),

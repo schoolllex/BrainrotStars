@@ -171,6 +171,7 @@
         byId: new Map(),
         catalog: new Map(),
         troops: new Map(),
+        spells: new Map(),
         /** Scene affichee : "home" (ton village) ou "battle" (bataille, replay). */
         scene: "home",
         /** Interaction dans le village : view | place | move. */
@@ -186,6 +187,8 @@
     V.serverNow = () => Date.now() + S.clockOffset;
     V.cat = (type) => S.catalog.get(type);
     V.troop = (type) => S.troops.get(type);
+    V.spell = (type) => S.spells.get(type);
+    V.unit = (type) => S.troops.get(type) || S.spells.get(type);
 
     V.liveGold = () => {
         if (!S.data) return 0;
@@ -298,8 +301,13 @@
         S.receivedAt = Date.now();
         S.clockOffset = Number(data.serverTime || Date.now()) - Date.now();
         S.byId = new Map(data.buildings.map((b) => [b.id, b]));
-        S.catalog = new Map(data.catalog.map((c) => [c.type, c]));
-        S.troops = new Map((data.troops || []).map((t) => [t.type, t]));
+        const endless = (item) => {
+            if (item.maxLevel === null || item.maxLevel === undefined) item.maxLevel = Infinity;
+            return [item.type, item];
+        };
+        S.catalog = new Map(data.catalog.map(endless));
+        S.troops = new Map((data.troops || []).map(endless));
+        S.spells = new Map((data.spells || []).map(endless));
         for (const fn of stateListeners) fn(data, first);
         rerenderSheet();
     };

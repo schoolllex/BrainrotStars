@@ -37,6 +37,7 @@ let walletGold = 0;
 
 let sellModalState = { card: null, busy: false };
 let buyModalState = { listing: null, busy: false };
+let dailyState = { offers: [], purchasesLeft: 0, nextAt: null, refresh: null };
 
 const ui = {
     wallet: document.getElementById("ah-wallet"),
@@ -78,7 +79,11 @@ const ui = {
     sellRefPrice: document.getElementById("sell-ref-price"),
     sellPriceMin: document.getElementById("sell-price-min"),
     sellPriceMax: document.getElementById("sell-price-max"),
-    sellModalConfirm: document.getElementById("sell-modal-confirm")
+    sellModalConfirm: document.getElementById("sell-modal-confirm"),
+    daily: document.getElementById("ah-daily"),
+    dailyGrid: document.getElementById("ah-daily-grid"),
+    dailyTimer: document.getElementById("ah-daily-timer"),
+    dailyLimit: document.getElementById("ah-daily-limit")
 };
 
 /* ==========================================================================
@@ -474,8 +479,9 @@ function openBuyModal(listing) {
 
     // Le serveur revalide le solde : ceci n'est qu'un retour immediat.
     const affordable = walletGold >= listing.price;
-    ui.buyModalConfirm.disabled = !affordable;
-    ui.buyModalConfirm.title = affordable ? "" : "Or insuffisant";
+    const dailyBlocked = Boolean(listing.daily) && dailyState.purchasesLeft <= 0;
+    ui.buyModalConfirm.disabled = !affordable || dailyBlocked;
+    ui.buyModalConfirm.title = dailyBlocked ? "Tu as déjà acheté une annonce du jour" : affordable ? "" : "Or insuffisant";
 
     ui.buyModal.classList.remove("hidden");
     document.body.classList.add("no-scroll");
@@ -551,7 +557,10 @@ async function confirmBuy() {
     buyModalState.busy = true;
     ui.buyModalConfirm.disabled = true;
 
-    const result = await apiCall(`/market/listings/${encodeURIComponent(listing.id)}/buy`, { method: "POST" });
+    const path = listing.daily
+        ? `/market/daily/${encodeURIComponent(listing.id)}/buy`
+        : `/market/listings/${encodeURIComponent(listing.id)}/buy`;
+    const result = await apiCall(path, { method: "POST" });
 
     buyModalState.busy = false;
 
@@ -559,7 +568,7 @@ async function confirmBuy() {
         ui.buyModalConfirm.disabled = false;
         toast(result?.message || "Achat impossible", "error");
         // Annonce disparue ou deja vendue : on rafraichit la page courante.
-        await fetchMarketListings();
+        await (listing.daily ? fetchDaily() : fetchMarketListings());
         closeBuyModal();
         return;
     }
@@ -569,7 +578,7 @@ async function confirmBuy() {
     toast(`${listing.card.name} acheté pour ${formatCompact(result.price)} 💰`, "success");
     closeBuyModal();
 
-    await Promise.all([fetchMarketListings(), fetchInventory()]);
+    await Promise.all([listing.daily ? fetchDaily() : fetchMarketListings(), fetchInventory()]);
     renderSellGrid();
 }
 
@@ -638,6 +647,7 @@ async function init() {
 
         await Promise.all([
             fetchWallet(),
+            fetchDaily(),
             fetchMarketListings(),
             fetchInventory(),
             fetchMyListings()
@@ -674,6 +684,13 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.buyModalOverlay.addEventListener("click", closeBuyModal);
     ui.buyModalConfirm.addEventListener("click", confirmBuy);
 
+    ui.dailyGrid.addEventListener("click", (event) => {
+        const tile = event.target.closest("[data-daily]");
+        const offer = tile ? dailyState.offers[Number(tile.dataset.daily)] : null;
+        if (offer && !offer.sold) openBuyModal(offer);
+    });
+    setInterval(renderDailyTimer, 30000);
+
     ui.sellModalClose.addEventListener("click", closeSellModal);
     ui.sellModalOverlay.addEventListener("click", closeSellModal);
     ui.sellModalConfirm.addEventListener("click", confirmSell);
@@ -688,3 +705,70 @@ document.addEventListener("DOMContentLoaded", () => {
 
     init();
 });
+
+function escapeHtml(text) {
+    return String(text ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+async function fetchDaily() {
+    const payload = await apiCall("/market/daily");
+    if (!payload?.success) {
+        dailyState.offers = [];
+        renderDaily();
+        return;
+    }
+    dailyState.offers = (Array.isArray(payload.offers) ? payload.offers : []).map((offer) => ({ ...offer, daily: true }));
+    dailyState.purchasesLeft = Number(payload.purchasesLeft) || 0;
+    dailyState.nextAt = payload.nextAt ? new Date(payload.nextAt).getTime() : null;
+    renderDaily();
+    clearTimeout(dailyState.refresh);
+    if (dailyState.nextAt) {
+        dailyState.refresh = setTimeout(fetchDaily, Math.max(5000, dailyState.nextAt - Date.now() + 3000));
+    }
+}
+
+function renderDailyTimer() {
+    if (!dailyState.nextAt) {
+        ui.dailyTimer.textContent = "";
+        return;
+    }
+    const left = Math.max(0, dailyState.nextAt - Date.now());
+    const hours = Math.floor(left / 3600000);
+    const minutes = Math.floor((left % 3600000) / 60000);
+    ui.dailyTimer.textContent = hours > 0
+        ? `Nouvelles dans ${hours} h ${String(minutes).padStart(2, "0")}`
+        : `Nouvelles dans ${Math.max(1, minutes)} min`;
+}
+
+function renderDaily() {
+    ui.daily.hidden = dailyState.offers.length === 0;
+    if (dailyState.offers.length === 0) return;
+    ui.dailyLimit.textContent = dailyState.purchasesLeft > 0 ? "1 achat par jour" : "Achat du jour utilisé";
+    renderDailyTimer();
+    ui.dailyGrid.innerHTML = dailyState.offers.map((offer, index) => {
+        const card = offer.card;
+        const color = getRarityColor(card.rarity);
+        const img = /^https?:\/\//i.test(card.link || "") ? card.link : "";
+        const delta = offer.priceDelta || 0;
+        const deltaClass = delta > 1 ? "up" : delta < -1 ? "down" : "neutral";
+        const badge = offer.boughtByMe ? "Acheté" : offer.sold ? "Vendu" : "Du jour";
+        const state = offer.boughtByMe ? " is-sold is-mine" : offer.sold ? " is-sold" : "";
+        return `
+            <div class="ah-listing-card ah-daily-card${state}" data-daily="${index}" role="button" tabindex="0" style="border-color:${color}55">
+                <div class="ah-listing-card-img-wrap">
+                    ${img
+                        ? `<img class="ah-listing-card-img" src="${escapeHtml(img)}" alt="" loading="lazy">`
+                        : `<div class="ah-listing-card-img-fallback">${escapeHtml(card.emoji || "🃏")}</div>`}
+                    <span class="ah-daily-badge">${badge}</span>
+                </div>
+                <div class="ah-listing-card-name">${escapeHtml(card.name)}</div>
+                <div class="ah-listing-card-rarity" style="color:${color}">${escapeHtml((card.rarity || "").replace(/-/g, " "))}</div>
+                <div class="ah-listing-card-cps"><i data-lucide="zap"></i>${formatCompact(card.goldPerSec || 0)}/s</div>
+                <div class="ah-listing-card-price">
+                    <span class="ah-listing-price-value">${formatCompact(offer.price)} 💰</span>
+                    <span class="ah-listing-price-delta ${deltaClass}">${delta > 0 ? "+" : ""}${delta.toFixed(1)}%</span>
+                </div>
+            </div>`;
+    }).join("");
+    lucide.createIcons();
+}

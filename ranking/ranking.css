@@ -126,14 +126,25 @@ body {
 .ranking-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 620px;
+    min-width: 900px;
 }
 
 .ranking-table th,
 .ranking-table td {
-    padding: 0.8rem 0.9rem;
+    padding: 0.8rem 0.75rem;
     text-align: left;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ranking-table td {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.ranking-table td.name-cell {
+    min-width: 120px;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .ranking-table th {
@@ -190,6 +201,27 @@ body {
 .win-cell {
     color: #fb923c;
     font-weight: 700;
+}
+
+.village-cell {
+    color: #2dd4bf;
+    font-weight: 700;
+}
+
+.achievements-cell {
+    color: #f472b6;
+    font-weight: 700;
+}
+
+.streak-cell {
+    color: #f97316;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.streak-cell.is-dead {
+    color: var(--text-muted);
+    opacity: 0.6;
 }
 
 .ranking-disclaimer {

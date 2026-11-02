@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BrainrotStars - Achievements</title>
+    <title>BrainrotStars - Succès</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="../index/style.css">
     <link rel="stylesheet" href="achievements.css">
@@ -22,13 +22,10 @@
                     <img src="https://raw.githubusercontent.com/schoolllex/images/refs/heads/main/BrainrotStar/BrainrotStar_logo_fc.png" alt="Brainrot Star" class="logo-image">
                 </a>
             </div>
-            <button class="nav-toggle" type="button" aria-label="Ouvrir le menu" aria-expanded="false">
-                <i data-lucide="menu"></i>
-            </button>
             <div class="nav-buttons">
                 <a href="../index/index.html" class="btn-nav nav-link">
-                  <i data-lucide="home"></i>
-                  <span>Accueil</span>
+                    <i data-lucide="home"></i>
+                    <span>Accueil</span>
                 </a>
                 <a href="../shop/shop.html" class="btn-nav shop nav-link">
                     <i data-lucide="store"></i>
@@ -42,25 +39,60 @@
                     <i data-lucide="trophy"></i>
                     <span>Classement</span>
                 </a>
-                <a href="../friends/friends.html" class="btn-nav profile nav-link">
+                <button type="button" class="btn-nav profile nav-link">
                     <i data-lucide="user"></i>
                     <span>Profil</span>
-                </a>
-                <button type="button" class="btn-nav profile nav-link">
-                  <i data-lucide="user"></i>
-                  <span>Profil</span>
                 </button>
-</div>
+            </div>
         </header>
 
         <main class="achievements-content">
-            <section class="achievements-header-card achievements-coming-soon">
-                <i data-lucide="trophy"></i>
-                <h1>Succès à venir</h1>
-                <p>Les succès arrivent bientôt, reste connecté !</p>
+            <section class="ach-header">
+                <div class="ach-header-row">
+                    <span class="ach-header-icon"><i data-lucide="award"></i></span>
+                    <div class="ach-header-text">
+                        <h1>Succès</h1>
+                        <p id="ach-summary-text">Chargement…</p>
+                    </div>
+                    <button id="ach-claim-all" class="ach-claim-all hidden" type="button">
+                        <i data-lucide="gift"></i>
+                        <span>Tout récupérer</span>
+                        <span class="shine" aria-hidden="true"></span>
+                    </button>
+                </div>
+                <div class="ach-progress"><i id="ach-summary-bar"></i></div>
+            </section>
+
+            <nav id="ach-filters" class="ach-filters" aria-label="Catégories de succès"></nav>
+
+            <div id="ach-list" class="ach-list"></div>
+
+            <section id="ach-error" class="ach-error hidden">
+                <p>Les succès sont indisponibles pour le moment.</p>
+                <button id="ach-retry" class="ach-btn" type="button">Réessayer</button>
             </section>
         </main>
     </div>
+
+    <div id="ach-toast" class="ach-toast hidden" role="status" aria-live="polite"></div>
+
+    <div id="ach-celebrate" class="ach-celebrate hidden" role="dialog" aria-modal="true" aria-labelledby="ach-celebrate-title">
+        <div class="ach-celebrate-stage">
+            <div class="ach-celebrate-light"></div>
+            <div class="ach-celebrate-rays"></div>
+            <span class="ach-celebrate-trophy" id="ach-celebrate-trophy" aria-hidden="true">🏆</span>
+        </div>
+        <h2 class="ach-celebrate-title" id="ach-celebrate-title"></h2>
+        <p class="ach-celebrate-gold" id="ach-celebrate-gold"></p>
+        <div class="ach-celebrate-rewards" id="ach-celebrate-rewards"></div>
+        <button id="ach-celebrate-close" class="ach-claim-all ach-celebrate-close" type="button">
+            <span>Continuer</span>
+            <span class="shine" aria-hidden="true"></span>
+        </button>
+    </div>
+
+    <div id="ach-fx" class="ach-fx" aria-hidden="true"></div>
+    <div id="ach-flash" class="ach-flash" aria-hidden="true"></div>
 
     <div id="global-loader" class="global-loader hidden" aria-hidden="true">
         <div class="global-loader-spinner"></div>
@@ -73,11 +105,12 @@
 
     <script src="../assets/shared-nav.js"></script>
     <script src="../assets/mobile-nav.js"></script>
-    <script src="../assets/rebirth-reveal.js"></script>
     <script src="../assets/loading.js"></script>
     <script src="../assets/auth-gate.js"></script>
     <script src="../assets/notif.js"></script>
     <script src="../assets/game-notif.js"></script>
+    <script src="../assets/announce.js"></script>
+    <script src="../assets/tournament-banner.js"></script>
     <script src="achievements.js"></script>
 </body>
 </html>

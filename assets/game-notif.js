@@ -217,7 +217,7 @@
         <div class="gn-icon" aria-hidden="true">⚔️</div>
         <div class="gn-text">
           <div class="gn-label">Défi reçu</div>
-          <div class="gn-desc"><span>${from}</span> te défie !</div>
+          <div class="gn-desc"><span class="gn-from"></span> te défie !</div>
           <div class="gn-sub">Réponds avant que le défi expire</div>
         </div>
         <button class="gn-close" aria-label="Fermer">✕</button>
@@ -229,6 +229,7 @@
       </div>
       <div class="gn-progress" aria-hidden="true"><i></i></div>
     `;
+    notif.querySelector('.gn-from').textContent = String(from ?? '');
 
     document.body.appendChild(notif);
 

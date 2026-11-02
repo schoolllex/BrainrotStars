@@ -346,7 +346,8 @@
     gap: 0.3rem;
 }
 
-.ah-listing-card-cps i {
+.ah-listing-card-cps i,
+.ah-listing-card-cps svg {
     width: 12px;
     height: 12px;
 }
@@ -876,5 +877,98 @@
 
     .ah-my-listing-row {
         gap: 0.75rem;
+    }
+}
+
+.ah-daily {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.ah-daily[hidden] {
+    display: none;
+}
+
+.ah-daily-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.ah-daily-title {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.ah-daily-meta {
+    color: var(--text-faint);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.ah-daily-timer {
+    margin-left: auto;
+    padding: 0.3rem 0.75rem;
+    border: 1px solid var(--card-border-strong);
+    border-radius: 999px;
+    color: var(--text-soft);
+    font-size: 0.78rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.ah-daily-timer:empty {
+    display: none;
+}
+
+.ah-daily-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.ah-daily-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 900;
+}
+
+.ah-daily-card.is-sold {
+    cursor: default;
+    opacity: 0.45;
+}
+
+.ah-daily-card.is-sold:hover {
+    transform: none;
+    filter: none;
+}
+
+.ah-daily-card.is-mine {
+    opacity: 0.7;
+}
+
+.ah-daily-card.is-mine .ah-daily-badge {
+    background: #fff;
+    color: #0a0a0a;
+}
+
+@media (max-width: 900px) {
+    .ah-daily-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .ah-daily-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
